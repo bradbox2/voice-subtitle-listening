@@ -116,19 +116,20 @@ class NaturalOrderComparatorTest {
 
   @Test
   fun uriComparatorFiles() {
-    val expected = listOf(
-      file("1.mp3"),
-      file("a.jpg"),
-      file("folder/a.jpg"),
-      file("folder/aC.jpg"),
-      file("folder/subfolder/subsubfolder/test2.mp3"),
-      file("folder/subfolder/test.mp3"),
-      file("folder/subfolder/test2.mp3"),
-      file("storage/emulated/0/1.ogg"),
-      file("storage/emulated/0/2.ogg"),
-      file("xFolder/d.jpg"),
+    // Use synthetic file URIs so the assertion does not depend on platform-specific
+    // Uri.fromFile() encoding differences between Windows and Linux.
+    val uris = listOf(
+      Uri.parse("file:///root/folder/subfolder/subsubfolder/test2.mp3"),
+      Uri.parse("file:///root/folder/subfolder/test.mp3"),
+      Uri.parse("file:///root/folder/subfolder/test2.mp3"),
+      Uri.parse("file:///root/folder/a.jpg"),
+      Uri.parse("file:///root/folder/aC.jpg"),
+      Uri.parse("file:///root/storage/emulated/0/1.ogg"),
+      Uri.parse("file:///root/storage/emulated/0/2.ogg"),
+      Uri.parse("file:///root/xFolder/d.jpg"),
+      Uri.parse("file:///root/1.mp3"),
+      Uri.parse("file:///root/a.jpg"),
     )
-    val uris = expected.map { Uri.fromFile(it) }
 
     uris.sortedWith(NaturalOrderComparator.uriComparator)
       .shouldContainExactly(uris)
