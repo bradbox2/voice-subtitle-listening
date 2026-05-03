@@ -1,1 +1,1 @@
-Minimalist offline audiobook player. Free, no ads, volume boost & sleep timer.
+Subtitle listening fork for offline audiobooks. SRT practice, tap-to-seek, no ads.
