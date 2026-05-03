@@ -9,6 +9,7 @@ import dev.zacsweers.metro.ContributesTo
 import dev.zacsweers.metro.Provides
 import dev.zacsweers.metro.SingleIn
 import kotlinx.serialization.builtins.MapSerializer
+import kotlinx.serialization.builtins.SetSerializer
 import kotlinx.serialization.builtins.nullable
 import kotlinx.serialization.builtins.serializer
 import voice.core.data.BookId
@@ -177,6 +178,24 @@ public interface StoreModule {
       serializer = MapSerializer(String.serializer(), FeatureFlagOverride.serializer()),
       defaultValue = emptyMap(),
       fileName = "featureFlagOverrides",
+    )
+  }
+
+  @Provides
+  @SingleIn(AppScope::class)
+  @SubtitleFocusModeStore
+  private fun subtitleFocusMode(factory: VoiceDataStoreFactory): DataStore<Boolean> {
+    return factory.boolean("subtitleFocusModeEnabled", defaultValue = true)
+  }
+
+  @Provides
+  @SingleIn(AppScope::class)
+  @StarredSubtitleCueKeysStore
+  private fun starredSubtitleCueKeys(factory: VoiceDataStoreFactory): DataStore<Set<String>> {
+    return factory.create(
+      serializer = SetSerializer(String.serializer()),
+      defaultValue = emptySet(),
+      fileName = "starredSubtitleCueKeys",
     )
   }
 }

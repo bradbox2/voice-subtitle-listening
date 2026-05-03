@@ -17,7 +17,34 @@ data class BookPlayViewState(
   val playing: Boolean,
   val cover: ImmutableFile?,
   val skipSilence: Boolean,
+  val subtitleFocusModeEnabled: Boolean,
+  val subtitles: SubtitlePanelViewState?,
 ) {
+
+  @Immutable
+  data class SubtitlePanelViewState(
+    val visible: Boolean,
+    val repeatSentenceEnabled: Boolean,
+    val activeIndex: Int?,
+    val speedOptions: List<SpeedOption>,
+    val items: List<Item>,
+  ) {
+
+    @Immutable
+    data class SpeedOption(
+      val speed: Float,
+      val selected: Boolean,
+    )
+
+    @Immutable
+    data class Item(
+      val startMs: Long,
+      val starKey: String,
+      val text: String,
+      val active: Boolean,
+      val starred: Boolean,
+    )
+  }
 
   sealed interface SleepTimerViewState {
     data object Disabled : SleepTimerViewState

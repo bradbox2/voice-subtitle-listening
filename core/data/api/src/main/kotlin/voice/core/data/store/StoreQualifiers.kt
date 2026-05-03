@@ -40,3 +40,9 @@ public annotation class DeveloperMenuUnlockedStore
 
 @Qualifier
 public annotation class FeatureFlagOverridesStore
+
+@Qualifier
+public annotation class SubtitleFocusModeStore
+
+@Qualifier
+public annotation class StarredSubtitleCueKeysStore

@@ -59,12 +59,17 @@ android {
     }
   }
 
-  fun createSigningConfig(name: String): ApkSigningConfig {
+  fun createSigningConfig(name: String): ApkSigningConfig? {
+    val propertiesFile = listOf(
+      layout.settingsDirectory.file("signing/$name/signing.properties").asFile,
+      layout.settingsDirectory.file("signing/ci/signing.properties").asFile,
+    ).firstOrNull { it.canRead() }
+      ?: return null.also {
+        logger.warn("Signing config '$name' not found; using default debug signing where available.")
+      }
+
     return signingConfigs.create(name) {
       val properties = Properties()
-      val propertiesFile = layout.settingsDirectory.file("signing/$name/signing.properties").asFile
-        .takeIf { it.canRead() }
-        ?: layout.settingsDirectory.file("signing/ci/signing.properties").asFile
       propertiesFile.inputStream().use { input ->
         properties.load(input)
       }

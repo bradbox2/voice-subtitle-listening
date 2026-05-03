@@ -1,5 +1,8 @@
 *.iml
 *.apk
+*.aab
+*.jks
+*.keystore
 .DS_Store
 captures
 audiobook/build

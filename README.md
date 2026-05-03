@@ -3,6 +3,25 @@ Voice
 <img src="https://hosted.weblate.org/widgets/voice/-/svg-badge.svg" alt="Translation status" />
 =======================
 
+## About This Fork
+
+This is a GPLv3-licensed fork of Voice by Paul Woitaschek.
+
+Original project: <https://github.com/PaulWoitaschek/Voice>
+
+This fork is not the official Voice app. It adds SRT subtitle-based listening practice features for language learners while preserving the original audiobook playback behavior when no subtitles are available.
+
+## Changes in This Fork
+
+- Same-folder, same-basename `.srt` discovery
+- SAF/content:// subtitle discovery
+- SRT parsing
+- Subtitle-focused listening mode
+- Tap subtitle to seek
+- Current subtitle highlighting
+- Starred subtitle sentences
+- Cover/subtitle mode toggle
+
 <a href="https://play.google.com/store/apps/details?id=de.ph1b.audiobook"><img src="https://raw.githubusercontent.com/VoiceAudiobook/Voice/main/fastlane/metadata/android/en-US/images/featureGraphic.jpeg" width="600" ></a>
 
 **Voice** is a minimalistic, user-focused audiobook player built for reliability and simplicity.
@@ -22,4 +41,4 @@ For complete details on features, development, and licensing, please visit our [
 
 ## License
 
-This project is licensed under [GNU GPLv3](docs/license). By contributing, you agree to license your code under the same terms.
+This fork is licensed under GNU GPLv3, same as the upstream Voice project. The original project is licensed under [GNU GPLv3](docs/license). By contributing, you agree to license your code under the same terms.

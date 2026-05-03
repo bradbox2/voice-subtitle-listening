@@ -9,7 +9,10 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Bedtime
 import androidx.compose.material.icons.outlined.BedtimeOff
 import androidx.compose.material.icons.outlined.CollectionsBookmark
+import androidx.compose.material.icons.outlined.Image
+import androidx.compose.material.icons.outlined.Refresh
 import androidx.compose.material.icons.outlined.Speed
+import androidx.compose.material.icons.outlined.Subtitles
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LargeTopAppBar
@@ -33,10 +36,30 @@ internal fun BookPlayAppBar(
   onSpeedChangeClick: () -> Unit,
   onSkipSilenceClick: () -> Unit,
   onVolumeBoostClick: () -> Unit,
+  onRefreshClick: () -> Unit,
+  onSubtitleFocusModeClick: () -> Unit,
   onCloseClick: () -> Unit,
   useLandscapeLayout: Boolean,
 ) {
   val appBarActions: @Composable RowScope.() -> Unit = {
+    if (viewState.subtitles != null) {
+      IconButton(onClick = onSubtitleFocusModeClick) {
+        Icon(
+          imageVector = if (viewState.subtitleFocusModeEnabled) Icons.Outlined.Image else Icons.Outlined.Subtitles,
+          contentDescription = if (viewState.subtitleFocusModeEnabled) {
+            "Switch to cover mode"
+          } else {
+            "Switch to subtitle mode"
+          },
+        )
+      }
+    }
+    IconButton(onClick = onRefreshClick) {
+      Icon(
+        imageVector = Icons.Outlined.Refresh,
+        contentDescription = "Refresh subtitles",
+      )
+    }
     IconButton(onClick = onSleepTimerClick) {
       Icon(
         imageVector = if (viewState.sleepTimerState is BookPlayViewState.SleepTimerViewState.Disabled) {
@@ -75,14 +98,17 @@ internal fun BookPlayAppBar(
       onVolumeBoostClick = onVolumeBoostClick,
     )
   }
-  if (useLandscapeLayout) {
+  val subtitleFocusMode = viewState.subtitles != null && viewState.subtitleFocusModeEnabled
+  if (useLandscapeLayout || subtitleFocusMode) {
     TopAppBar(
       navigationIcon = {
         CloseIcon(onCloseClick)
       },
       actions = appBarActions,
       title = {
-        AppBarTitle(viewState.title)
+        if (!subtitleFocusMode) {
+          AppBarTitle(viewState.title)
+        }
       },
     )
   } else {
