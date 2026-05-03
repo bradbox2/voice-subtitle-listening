@@ -410,7 +410,7 @@ class BookPlayViewModel(
     scope.launch {
       val book = currentBook() ?: return@launch
       player.setPosition(
-        time = (cueStartMs - subtitleSeekPreRollMs).coerceAtLeast(0),
+        time = (cueStartMs - SUBTITLE_SEEK_PRE_ROLL_MS).coerceAtLeast(0),
         id = book.currentChapter.id,
       )
     }
@@ -491,7 +491,7 @@ class BookPlayViewModel(
       ?.let { selectedStartMs -> cues.firstOrNull { it.startMs == selectedStartMs } }
     val effectiveCue = if (
       selectedCue != null &&
-      positionMs >= (selectedCue.startMs - subtitleSeekPreRollMs).coerceAtLeast(0) &&
+      positionMs >= (selectedCue.startMs - SUBTITLE_SEEK_PRE_ROLL_MS).coerceAtLeast(0) &&
       positionMs <= selectedCue.endMs
     ) {
       selectedCue
@@ -515,7 +515,7 @@ class BookPlayViewModel(
 
     loopSeekPendingForCueStartMs = effectiveCue.startMs
     player.setPosition(
-      time = (effectiveCue.startMs - subtitleSeekPreRollMs).coerceAtLeast(0),
+      time = (effectiveCue.startMs - SUBTITLE_SEEK_PRE_ROLL_MS).coerceAtLeast(0),
       id = chapterId,
     )
   }
@@ -569,7 +569,7 @@ private fun List<SubtitleCue>.toSubtitlePanelViewState(
 private val SUBTITLE_PLAYBACK_SPEEDS = listOf(0.75F, 1.0F, 1.25F)
 private const val SUBTITLE_LOG_TAG = "VoiceSubtitle"
 private const val SUBTITLE_SYNC_LOG_TAG = "VoiceSubtitleSync"
-private const val subtitleSeekPreRollMs = 0L
+private const val SUBTITLE_SEEK_PRE_ROLL_MS = 0L
 private const val SUBTITLE_LOOP_THRESHOLD_MS = 80L
 
 private fun logSubtitleSync(

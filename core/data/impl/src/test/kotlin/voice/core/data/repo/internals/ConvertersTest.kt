@@ -50,6 +50,10 @@ class ConvertersTest {
     val converters = Converters()
     val serialized: S = converters.serialize(value)
     val deSerialized: D = converters.deSerialize(serialized)
-    deSerialized shouldBe value
+    if (value is File && deSerialized is File) {
+      deSerialized.absolutePath shouldBe value.absolutePath
+    } else {
+      deSerialized shouldBe value
+    }
   }
 }

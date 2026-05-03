@@ -1,8 +1,10 @@
 package voice.core.data.repo.internals.internals
 
-import android.content.ContentValues
-import android.database.sqlite.SQLiteDatabase
 import androidx.room.testing.MigrationTestHelper
+import androidx.sqlite.SQLiteConnection
+import androidx.sqlite.SQLiteStatement
+import androidx.sqlite.driver.AndroidSQLiteDriver
+import androidx.sqlite.execSQL
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import io.kotest.matchers.collections.shouldContainExactly
@@ -12,11 +14,7 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import voice.core.data.repo.internals.AppDb
 import voice.core.data.repo.internals.allMigrations
-import voice.core.data.repo.internals.getFloat
-import voice.core.data.repo.internals.getInt
-import voice.core.data.repo.internals.getString
-import voice.core.data.repo.internals.getStringOrNull
-import voice.core.data.repo.internals.mapRows
+import java.io.File
 import java.util.UUID
 import kotlin.random.Random
 
@@ -27,29 +25,24 @@ class DataBaseMigratorTest {
   @JvmField
   val helper = MigrationTestHelper(
     InstrumentationRegistry.getInstrumentation(),
-    AppDb::class.java,
+    File(InstrumentationRegistry.getInstrumentation().targetContext.cacheDir, "migration-test-db"),
+    AndroidSQLiteDriver(),
+    AppDb::class,
   )
 
   @Test
   fun emptyTableLeadsToCorrectSchema() {
-    val dbName = "testDb"
-    val db = helper.createDatabase(dbName, 43)
+    val db = helper.createDatabase(43)
     db.execSQL(BookTable.CREATE_TABLE)
     db.execSQL(ChapterTable.CREATE_TABLE)
     db.execSQL(BookmarkTable.CREATE_TABLE)
     db.close()
-    helper.runMigrationsAndValidate(
-      dbName,
-      AppDb.VERSION,
-      true,
-      *allMigrations(),
-    )
+    helper.runMigrationsAndValidate(AppDb.VERSION, allMigrations().toList())
   }
 
   @Test
   fun migrate44() {
-    val dbName = "testDb"
-    val db = helper.createDatabase(dbName, 44)
+    val db = helper.createDatabase(44)
 
     data class BookSetting(
       val id: String,
@@ -64,17 +57,39 @@ class DataBaseMigratorTest {
 
     fun insertBookSettings(settings: BookSetting) {
       db.execSQL(
-        "INSERT OR REPLACE INTO `bookSettings`(`id`,`currentFile`,`positionInChapter`,`playbackSpeed`,`loudnessGain`,`skipSilence`," +
-          "`active`,`lastPlayedAtMillis`) VALUES (?,?,?,?,?,?,?,?)",
-        arrayOf<Any>(settings.id, settings.currentFile, settings.positionInChapter, 1F, 0, 0, 1, 0),
+        """
+        INSERT OR REPLACE INTO `bookSettings`(
+          `id`,`currentFile`,`positionInChapter`,`playbackSpeed`,`loudnessGain`,`skipSilence`,
+          `active`,`lastPlayedAtMillis`
+        ) VALUES (
+          ${sqlString(settings.id)},
+          ${sqlString(settings.currentFile)},
+          ${settings.positionInChapter},
+          1.0,
+          0,
+          0,
+          1,
+          0
+        )
+        """.trimIndent(),
       )
     }
 
     fun insertChapter(chapter: Chapter) {
       db.execSQL(
-        "INSERT OR REPLACE INTO `chapters`(`file`,`name`,`duration`,`fileLastModified`,`marks`,`bookId`,`id`) " +
-          "VALUES (?,?,?,?,?,?,nullif(?, 0))",
-        arrayOf<Any>(chapter.file, "name", 1L, 0L, "{}", chapter.bookId),
+        """
+        INSERT OR REPLACE INTO `chapters`(
+          `file`,`name`,`duration`,`fileLastModified`,`marks`,`bookId`,`id`
+        ) VALUES (
+          ${sqlString(chapter.file)},
+          'name',
+          1,
+          0,
+          '{}',
+          ${sqlString(chapter.bookId)},
+          NULL
+        )
+        """.trimIndent(),
       )
     }
 
@@ -93,14 +108,9 @@ class DataBaseMigratorTest {
 
     db.close()
 
-    val migratedDb = helper.runMigrationsAndValidate(
-      dbName,
-      45,
-      true,
-      *allMigrations(),
-    )
+    val migratedDb = helper.runMigrationsAndValidate(45, allMigrations().toList())
 
-    val migratedBookSettings = migratedDb.query("SELECT * FROM bookSettings").mapRows {
+    val migratedBookSettings = migratedDb.query("SELECT * FROM bookSettings") {
       BookSetting(
         id = getString("id"),
         currentFile = getString("currentFile"),
@@ -115,8 +125,7 @@ class DataBaseMigratorTest {
 
   @Test
   fun migrate43() {
-    val dbName = "testDb"
-    val db = helper.createDatabase(dbName, 43)
+    val db = helper.createDatabase(43)
     db.execSQL(BookTable.CREATE_TABLE)
     db.execSQL(ChapterTable.CREATE_TABLE)
     db.execSQL(BookmarkTable.CREATE_TABLE)
@@ -137,14 +146,16 @@ class DataBaseMigratorTest {
       )
     }
     bookmarks.forEach {
-      db.insert(
-        BookmarkTable.TABLE_NAME,
-        SQLiteDatabase.CONFLICT_FAIL,
-        ContentValues().apply {
-          put(BookmarkTable.PATH, it.path)
-          put(BookmarkTable.TITLE, it.title)
-          put(BookmarkTable.TIME, it.time)
-        },
+      db.execSQL(
+        """
+        INSERT INTO ${BookmarkTable.TABLE_NAME}(
+          ${BookmarkTable.PATH}, ${BookmarkTable.TITLE}, ${BookmarkTable.TIME}
+        ) VALUES (
+          ${sqlString(it.path)},
+          ${sqlString(it.title)},
+          ${it.time}
+        )
+        """.trimIndent(),
       )
     }
 
@@ -205,98 +216,198 @@ class DataBaseMigratorTest {
       listOf(firstBook, secondBook)
     }
 
-    books.forEach { book ->
-      val bookId =
-        db.insert(
-          BookTable.TABLE_NAME,
-          SQLiteDatabase.CONFLICT_FAIL,
-          ContentValues().apply {
-            put(BookTable.AUTHOR, book.author)
-            put(BookTable.NAME, book.name)
-            put(BookTable.CURRENT_MEDIA_PATH, book.currentMediaPath)
-            put(BookTable.PLAYBACK_SPEED, book.playbackSpeed)
-            put(BookTable.ROOT, book.root)
-            put(BookTable.TIME, book.time)
-            put(BookTable.TYPE, book.type)
-            put(BookTable.LOUDNESS_GAIN, book.loudnessGain)
-            put(BookTable.ACTIVE, book.active)
-          },
+    books.forEachIndexed { index, book ->
+      val bookId = index + 1
+      db.execSQL(
+        """
+        INSERT INTO ${BookTable.TABLE_NAME}(
+          ${BookTable.ID}, ${BookTable.AUTHOR}, ${BookTable.NAME}, ${BookTable.CURRENT_MEDIA_PATH},
+          ${BookTable.PLAYBACK_SPEED}, ${BookTable.ROOT}, ${BookTable.TIME},
+          ${BookTable.TYPE}, ${BookTable.LOUDNESS_GAIN}, ${BookTable.ACTIVE}
+        ) VALUES (
+          $bookId,
+          ${sqlString(book.author)},
+          ${sqlString(book.name)},
+          ${sqlString(book.currentMediaPath)},
+          ${book.playbackSpeed},
+          ${sqlString(book.root)},
+          ${book.time},
+          ${sqlString(book.type)},
+          ${book.loudnessGain},
+          ${book.active}
         )
+        """.trimIndent(),
+      )
       book.chapters.forEach { chapter ->
-        db.insert(
-          ChapterTable.TABLE_NAME,
-          SQLiteDatabase.CONFLICT_FAIL,
-          ContentValues().apply {
-            put(ChapterTable.DURATION, chapter.duration)
-            put(ChapterTable.NAME, chapter.name)
-            put(ChapterTable.PATH, chapter.path)
-            put(ChapterTable.LAST_MODIFIED, chapter.lastModified)
-            put(ChapterTable.MARKS, chapter.marks)
-            put(ChapterTable.BOOK_ID, bookId)
-          },
+        db.execSQL(
+          """
+          INSERT INTO ${ChapterTable.TABLE_NAME}(
+            ${ChapterTable.DURATION}, ${ChapterTable.NAME}, ${ChapterTable.PATH},
+            ${ChapterTable.LAST_MODIFIED}, ${ChapterTable.MARKS}, ${ChapterTable.BOOK_ID}
+          ) VALUES (
+            ${chapter.duration},
+            ${sqlString(chapter.name)},
+            ${sqlString(chapter.path)},
+            ${chapter.lastModified},
+            ${sqlString(chapter.marks)},
+            $bookId
+          )
+          """.trimIndent(),
         )
       }
     }
     db.close()
 
-    val migratedDb = helper.runMigrationsAndValidate(
-      dbName,
-      44,
-      true,
-      *allMigrations(),
-    )
+    val migratedDb = helper.runMigrationsAndValidate(44, allMigrations().toList())
 
-    val metaDataCursor = migratedDb.query("SELECT * FROM bookMetaData")
-    val bookSettingsCursor = migratedDb.query("SELECT * FROM bookSettings")
+    val metaDataRows = migratedDb.query("SELECT * FROM bookMetaData") {
+      BookMetaRow(
+        getString("id"),
+        getStringOrNull("author"),
+        getString("name"),
+        getString("root"),
+      )
+    }
+    val bookSettingsRows = migratedDb.query("SELECT * FROM bookSettings") {
+      BookSettingsRow(
+        getString("id"),
+        getString("currentFile"),
+        getInt("positionInChapter"),
+        getFloat("playbackSpeed"),
+        getInt("loudnessGain"),
+        getInt("skipSilence"),
+        getInt("active"),
+        getInt("lastPlayedAtMillis"),
+      )
+    }
 
-    metaDataCursor.count shouldBe books.size
-    bookSettingsCursor.count shouldBe books.size
+    metaDataRows.size shouldBe books.size
+    bookSettingsRows.size shouldBe books.size
 
     books.forEachIndexed { bookIndex, book ->
-      metaDataCursor.moveToPosition(bookIndex)
-      val metaDataId = metaDataCursor.getString("id")
-      metaDataCursor.getStringOrNull("author") shouldBe book.author
-      metaDataCursor.getString("name") shouldBe book.name
-      metaDataCursor.getString("root") shouldBe book.root
+      val (metaDataId, author, name, root) = metaDataRows[bookIndex]
+      author shouldBe book.author
+      name shouldBe book.name
+      root shouldBe book.root
 
-      bookSettingsCursor.moveToPosition(bookIndex)
-      val bookSettingsId = bookSettingsCursor.getString("id")
-      bookSettingsCursor.getString("currentFile") shouldBe book.currentMediaPath
-      bookSettingsCursor.getInt("positionInChapter") shouldBe book.time
-      bookSettingsCursor.getFloat("playbackSpeed") shouldBe book.playbackSpeed
-      bookSettingsCursor.getInt("loudnessGain") shouldBe book.loudnessGain
-      bookSettingsCursor.getInt("skipSilence") shouldBe 0
-      bookSettingsCursor.getInt("active") shouldBe book.active
-      bookSettingsCursor.getInt("lastPlayedAtMillis") shouldBe 0
+      val (
+        bookSettingsId,
+        currentFile,
+        positionInChapter,
+        playbackSpeed,
+        loudnessGain,
+        skipSilence,
+        active,
+        lastPlayedAtMillis,
+      ) = bookSettingsRows[bookIndex]
+      currentFile shouldBe book.currentMediaPath
+      positionInChapter shouldBe book.time
+      playbackSpeed shouldBe book.playbackSpeed
+      loudnessGain shouldBe book.loudnessGain
+      skipSilence shouldBe 0
+      active shouldBe book.active
+      lastPlayedAtMillis shouldBe 0
 
       metaDataId shouldBe bookSettingsId
 
-      val chapterCursor = migratedDb.query("SELECT * FROM chapters WHERE bookId = \"$metaDataId\"")
-      chapterCursor.count shouldBe book.chapters.size
-      book.chapters.forEachIndexed { chapterIndex, chapter ->
-        chapterCursor.moveToPosition(chapterIndex)
-        chapterCursor.getString("file") shouldBe chapter.path
-        chapterCursor.getInt("duration") shouldBe chapter.duration
-        chapterCursor.getString("name") shouldBe chapter.name
-        chapterCursor.getInt("fileLastModified") shouldBe chapter.lastModified
-        chapterCursor.getStringOrNull("marks") shouldBe (chapter.marks ?: "{}")
+      val chapterRows = migratedDb.query("SELECT * FROM chapters WHERE bookId = ${sqlString(metaDataId)}") {
+        ChapterRow(
+          getString("file"),
+          getInt("duration"),
+          getString("name"),
+          getInt("fileLastModified"),
+          getStringOrNull("marks"),
+        )
       }
-      chapterCursor.close()
+      chapterRows.size shouldBe book.chapters.size
+      book.chapters.forEachIndexed { chapterIndex, chapter ->
+        val (chapterPath, duration, chapterName, fileLastModified, marks) = chapterRows[chapterIndex]
+        chapterPath shouldBe chapter.path
+        duration shouldBe chapter.duration
+        chapterName shouldBe chapter.name
+        fileLastModified shouldBe chapter.lastModified
+        marks shouldBe (chapter.marks ?: "{}")
+      }
     }
-    metaDataCursor.close()
-    bookSettingsCursor.close()
 
-    val bookmarkCursor = migratedDb.query("SELECT * FROM bookmark")
-    bookmarkCursor.count shouldBe bookmarks.size
+    val bookmarkRows = migratedDb.query("SELECT * FROM bookmark") {
+      BookmarkRow(
+        getString("file"),
+        getInt("time"),
+        getString("title"),
+      )
+    }
+    bookmarkRows.size shouldBe bookmarks.size
     bookmarks.forEachIndexed { index, bookmark ->
-      bookmarkCursor.moveToPosition(index)
-      bookmarkCursor.getString("file") shouldBe bookmark.path
-      bookmarkCursor.getInt("time") shouldBe bookmark.time
-      bookmarkCursor.getString("title") shouldBe bookmark.title
+      val (file, time, title) = bookmarkRows[index]
+      file shouldBe bookmark.path
+      time shouldBe bookmark.time
+      title shouldBe bookmark.title
     }
-
-    bookmarkCursor.close()
+    migratedDb.close()
   }
+
+  private inline fun <T> SQLiteConnection.query(
+    sql: String,
+    mapper: SQLiteStatement.() -> T,
+  ): List<T> {
+    val rows = mutableListOf<T>()
+    prepare(sql).use { statement ->
+      while (statement.step()) {
+        rows += statement.mapper()
+      }
+    }
+    return rows
+  }
+
+  private fun SQLiteStatement.columnIndex(columnName: String): Int {
+    return getColumnNames().indexOf(columnName).also { index ->
+      check(index >= 0) { "Unknown column: $columnName" }
+    }
+  }
+
+  private fun SQLiteStatement.getString(columnName: String): String = getText(columnIndex(columnName))
+
+  private fun SQLiteStatement.getStringOrNull(columnName: String): String? =
+    if (isNull(columnIndex(columnName))) null else getText(columnIndex(columnName))
+
+  private fun SQLiteStatement.getInt(columnName: String): Int = getInt(columnIndex(columnName))
+
+  private fun SQLiteStatement.getFloat(columnName: String): Float = getFloat(columnIndex(columnName))
+
+  private fun sqlString(value: String?): String = value?.replace("'", "''")?.let { "'$it'" } ?: "NULL"
+
+  private data class BookMetaRow(
+    val id: String,
+    val author: String?,
+    val name: String,
+    val root: String,
+  )
+
+  private data class BookSettingsRow(
+    val id: String,
+    val currentFile: String,
+    val positionInChapter: Int,
+    val playbackSpeed: Float,
+    val loudnessGain: Int,
+    val skipSilence: Int,
+    val active: Int,
+    val lastPlayedAtMillis: Int,
+  )
+
+  private data class ChapterRow(
+    val file: String,
+    val duration: Int,
+    val name: String,
+    val fileLastModified: Int,
+    val marks: String?,
+  )
+
+  private data class BookmarkRow(
+    val file: String,
+    val time: Int,
+    val title: String,
+  )
 
   private object BookTable {
     const val ID = "bookId"

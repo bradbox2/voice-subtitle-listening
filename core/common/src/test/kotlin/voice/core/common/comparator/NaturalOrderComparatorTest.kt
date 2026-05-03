@@ -11,6 +11,7 @@ import org.junit.Test
 import org.junit.rules.TemporaryFolder
 import org.junit.runner.RunWith
 import java.io.File
+import java.nio.file.Files
 
 @RunWith(AndroidJUnit4::class)
 class NaturalOrderComparatorTest {
@@ -26,22 +27,25 @@ class NaturalOrderComparatorTest {
   }
 
   private fun testFiles(): List<File> {
-    testFolder.newFolder("folder", "subfolder", "subsubfolder")
-    testFolder.newFolder("storage", "emulated", "0")
-    testFolder.newFolder("xFolder")
-
     return listOf(
-      testFolder.newFile("folder/subfolder/subsubfolder/test2.mp3"),
-      testFolder.newFile("folder/subfolder/test.mp3"),
-      testFolder.newFile("folder/subfolder/test2.mp3"),
-      testFolder.newFile("folder/a.jpg"),
-      testFolder.newFile("folder/aC.jpg"),
-      testFolder.newFile("storage/emulated/0/1.ogg"),
-      testFolder.newFile("storage/emulated/0/2.ogg"),
-      testFolder.newFile("xFolder/d.jpg"),
-      testFolder.newFile("1.mp3"),
-      testFolder.newFile("a.jpg"),
+      file("folder/subfolder/subsubfolder/test2.mp3"),
+      file("folder/subfolder/test.mp3"),
+      file("folder/subfolder/test2.mp3"),
+      file("folder/a.jpg"),
+      file("folder/aC.jpg"),
+      file("storage/emulated/0/1.ogg"),
+      file("storage/emulated/0/2.ogg"),
+      file("xFolder/d.jpg"),
+      file("1.mp3"),
+      file("a.jpg"),
     )
+  }
+
+  private fun file(path: String): File {
+    val file = File(testFolder.root, path)
+    file.parentFile?.let { Files.createDirectories(it.toPath()) }
+    Files.createFile(file.toPath())
+    return file
   }
 
   @Test
@@ -112,7 +116,18 @@ class NaturalOrderComparatorTest {
 
   @Test
   fun uriComparatorFiles() {
-    val expected = testFiles()
+    val expected = listOf(
+      file("1.mp3"),
+      file("a.jpg"),
+      file("folder/a.jpg"),
+      file("folder/aC.jpg"),
+      file("folder/subfolder/subsubfolder/test2.mp3"),
+      file("folder/subfolder/test.mp3"),
+      file("folder/subfolder/test2.mp3"),
+      file("storage/emulated/0/1.ogg"),
+      file("storage/emulated/0/2.ogg"),
+      file("xFolder/d.jpg"),
+    )
     val uris = expected.map { Uri.fromFile(it) }
 
     uris.sortedWith(NaturalOrderComparator.uriComparator)

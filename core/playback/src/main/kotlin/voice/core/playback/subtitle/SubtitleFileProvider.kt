@@ -17,9 +17,7 @@ public interface SubtitleFileProvider {
 }
 
 @ContributesBinding(AppScope::class)
-public class SameFolderSubtitleFileProvider private constructor(
-  private val contentResolver: ContentResolver?,
-) : SubtitleFileProvider {
+public class SameFolderSubtitleFileProvider private constructor(private val contentResolver: ContentResolver?) : SubtitleFileProvider {
 
   @Inject
   public constructor(context: Context) : this(context.contentResolver)
@@ -101,7 +99,10 @@ public class SameFolderSubtitleFileProvider private constructor(
     val childrenUri = try {
       DocumentsContract.buildChildDocumentsUriUsingTree(audioUri, audioDocument.parentDocumentId)
     } catch (_: IllegalArgumentException) {
-      Log.d(TAG, "SubtitleFileProvider result subtitleUri=null reason=invalid_parent_document parentDocumentId=${audioDocument.parentDocumentId}")
+      Log.d(
+        TAG,
+        "SubtitleFileProvider result subtitleUri=null reason=invalid_parent_document parentDocumentId=${audioDocument.parentDocumentId}",
+      )
       return null
     }
 

@@ -53,7 +53,11 @@ class SubtitleFileProviderTest {
 
   @Test
   fun `extracts parent document id and audio display name from saf document uri`() {
-    val uri = "content://com.android.externalstorage.documents/tree/primary%3AAudiobooks/document/primary%3AAudiobooks%2Fsample%2Flesson01.mp3".toUri()
+    val uri =
+      (
+        "content://com.android.externalstorage.documents/tree/primary%3AAudiobooks/document/" +
+          "primary%3AAudiobooks%2Fsample%2Flesson01.mp3"
+        ).toUri()
 
     uri.toSafAudioDocument()
       ?.copy(authority = null) shouldBe SafAudioDocument(
