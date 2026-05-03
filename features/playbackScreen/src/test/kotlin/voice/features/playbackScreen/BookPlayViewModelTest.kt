@@ -514,6 +514,54 @@ class BookPlayViewModelTest {
   }
 
   @Test
+  fun `subtitles keep last valid chapter when live chapter is temporarily unknown`() = scope.runTest {
+    val livePlaybackFlow = MutableStateFlow<LivePlaybackState?>(
+      LivePlaybackState(
+        bookId = book.id,
+        chapterId = book.currentChapter.id,
+        positionMs = 1.5.minutes.inWholeMilliseconds,
+        isPlaying = true,
+        playbackSpeed = 1F,
+      ),
+    )
+    val cues = listOf(
+      SubtitleCue(
+        startMs = 1.minutes.inWholeMilliseconds,
+        endMs = 2.minutes.inWholeMilliseconds,
+        text = "Keep me visible",
+      ),
+    )
+    val viewModel = viewModel(
+      experimentalPlaybackPersistence = true,
+      livePlaybackFlow = livePlaybackFlow,
+      subtitleLoader = mockk {
+        every { loadForAudio(book.currentChapter.id.toUri()) } returns cues
+      },
+    )
+
+    backgroundScope.launchMolecule(RecompositionMode.Immediate) {
+      viewModel.viewState()
+    }.test {
+      awaitItem() shouldBe null
+      val validState = awaitStateWithSubtitles()
+      validState.subtitles!!.items.single().text shouldBe "Keep me visible"
+      validState.subtitles.activeIndex shouldBe 0
+
+      livePlaybackFlow.value = LivePlaybackState(
+        bookId = book.id,
+        chapterId = ChapterId("http://missing-live-chapter"),
+        positionMs = 4.minutes.inWholeMilliseconds,
+        isPlaying = true,
+        playbackSpeed = 1F,
+      )
+
+      val frozenState = awaitItem()!!
+      frozenState.subtitles!!.items.single().text shouldBe "Keep me visible"
+      frozenState.subtitles.activeIndex shouldBe 0
+    }
+  }
+
+  @Test
   fun `onSubtitleClick seeks using active live chapter instead of persisted current chapter`() = scope.runTest {
     val persistedBook = book(currentChapterIndex = 1)
     val liveChapter = persistedBook.chapters.first()

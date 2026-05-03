@@ -137,7 +137,7 @@ private fun SubtitleRow(
           bottom = if (focused) 9.dp else 8.dp,
         ),
     )
-    if (item.active) {
+    if (item.active || item.starred) {
       IconButton(
         onClick = { onSubtitleStarClick(item.starKey) },
         modifier = Modifier.padding(end = if (focused) 2.dp else 0.dp),
