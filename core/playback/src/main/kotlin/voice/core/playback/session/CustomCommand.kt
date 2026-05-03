@@ -5,6 +5,7 @@ import androidx.media3.session.MediaController
 import androidx.media3.session.SessionCommand
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
+import voice.core.data.PlaybackMode
 import voice.core.playback.misc.Decibel
 
 @Serializable
@@ -17,10 +18,16 @@ internal sealed interface CustomCommand {
   data object ForceSeekToPrevious : CustomCommand
 
   @Serializable
+  data object PauseWithoutRewind : CustomCommand
+
+  @Serializable
   data class SetSkipSilence(val skipSilence: Boolean) : CustomCommand
 
   @Serializable
   data class SetGain(val gain: Decibel) : CustomCommand
+
+  @Serializable
+  data class SetPlaybackMode(val mode: PlaybackMode) : CustomCommand
 
   companion object {
 

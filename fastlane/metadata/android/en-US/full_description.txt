@@ -1,4 +1,5 @@
 Subtitle listening fork of Voice for language practice.
+Not the official Voice app.
 
 Use your local audiobooks and subtitles together:
 
@@ -7,5 +8,8 @@ Use your local audiobooks and subtitles together:
 - Highlight the current subtitle line while listening
 - Star lines for review and practice
 - Keep offline audiobook playback when subtitles are not available
+- Use Voice's original playback modes for sequential play, single-track repeat, shuffle, and folder repeat
 
 Made for DRM-free local files, no ads, and no account required.
+Best suited for short practice clips around 3-8 minutes. For the most stable subtitle sync, prefer clips no longer than 10 minutes.
+Clicking a subtitle re-aligns playback from that sentence, but it does not globally re-time the entire subtitle file.

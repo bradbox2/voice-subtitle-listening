@@ -13,11 +13,12 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.RepeatOne
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.Alignment
@@ -26,8 +27,13 @@ import androidx.compose.ui.draw.blur
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import coil.compose.AsyncImage
+import voice.core.data.PlaybackMode
 import voice.features.playbackScreen.BookPlayViewState
 import kotlin.time.Duration
 
@@ -41,7 +47,7 @@ internal fun BookPlayContent(
   onSeek: (Duration) -> Unit,
   onSubtitleClick: (Long) -> Unit,
   onSubtitleStarClick: (String) -> Unit,
-  onRepeatSentenceClick: () -> Unit,
+  onPlaybackModeClick: () -> Unit,
   onSkipToNext: () -> Unit,
   onSkipToPrevious: () -> Unit,
   onCurrentChapterClick: () -> Unit,
@@ -59,7 +65,7 @@ internal fun BookPlayContent(
       onSeek = onSeek,
       onSubtitleClick = onSubtitleClick,
       onSubtitleStarClick = onSubtitleStarClick,
-      onRepeatSentenceClick = onRepeatSentenceClick,
+      onPlaybackModeClick = onPlaybackModeClick,
       onSkipToNext = onSkipToNext,
       onSkipToPrevious = onSkipToPrevious,
       onCurrentChapterClick = onCurrentChapterClick,
@@ -158,7 +164,7 @@ private fun SubtitleFocusedContent(
   onSeek: (Duration) -> Unit,
   onSubtitleClick: (Long) -> Unit,
   onSubtitleStarClick: (String) -> Unit,
-  onRepeatSentenceClick: () -> Unit,
+  onPlaybackModeClick: () -> Unit,
   onSkipToNext: () -> Unit,
   onSkipToPrevious: () -> Unit,
   onCurrentChapterClick: () -> Unit,
@@ -230,9 +236,9 @@ private fun SubtitleFocusedContent(
           onRewindClick = onRewindClick,
           onFastForwardClick = onFastForwardClick,
           leadingControl = {
-            RepeatSentenceButton(
-              enabled = subtitles.repeatSentenceEnabled,
-              onClick = onRepeatSentenceClick,
+            PlaybackModeButton(
+              mode = subtitles.playbackMode,
+              onClick = onPlaybackModeClick,
             )
           },
         )
@@ -243,19 +249,37 @@ private fun SubtitleFocusedContent(
 }
 
 @Composable
-private fun RepeatSentenceButton(
-  enabled: Boolean,
+private fun PlaybackModeButton(
+  mode: PlaybackMode,
   onClick: () -> Unit,
 ) {
-  IconButton(onClick = onClick) {
-    Icon(
-      imageVector = Icons.Outlined.RepeatOne,
-      contentDescription = "Repeat sentence",
-      tint = if (enabled) {
-        MaterialTheme.colorScheme.primary
-      } else {
-        LocalContentColor.current
-      },
-    )
+  val (label, description) = when (mode) {
+    PlaybackMode.Sequential -> "SEQ" to "Sequential playback"
+    PlaybackMode.SingleTrackLoop -> "ONE" to "Single-track loop"
+    PlaybackMode.Shuffle -> "SHUF" to "Shuffle playback"
+    PlaybackMode.FolderLoop -> "FOLDER" to "Folder loop"
+  }
+  Surface(
+    onClick = onClick,
+    shape = MaterialTheme.shapes.large,
+    tonalElevation = 2.dp,
+    color = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.92F),
+    contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
+    modifier = Modifier
+      .padding(vertical = 10.dp)
+      .semantics { contentDescription = description },
+  ) {
+    Box(
+      modifier = Modifier
+        .size(width = 76.dp, height = 44.dp),
+      contentAlignment = Alignment.Center,
+    ) {
+      Text(
+        text = label,
+        style = MaterialTheme.typography.labelLarge,
+        fontWeight = FontWeight.SemiBold,
+        textAlign = TextAlign.Center,
+      )
+    }
   }
 }

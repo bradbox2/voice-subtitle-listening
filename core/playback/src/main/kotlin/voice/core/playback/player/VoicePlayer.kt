@@ -17,10 +17,12 @@ import voice.core.analytics.api.Analytics
 import voice.core.data.BookContent
 import voice.core.data.BookId
 import voice.core.data.Chapter
+import voice.core.data.PlaybackMode
 import voice.core.data.repo.BookRepository
 import voice.core.data.repo.ChapterRepo
 import voice.core.data.store.AutoRewindAmountStore
 import voice.core.data.store.CurrentBookStore
+import voice.core.data.store.PlaybackModeStore
 import voice.core.data.store.SeekTimeStore
 import voice.core.logging.api.Logger
 import voice.core.playback.misc.Decibel
@@ -45,6 +47,8 @@ class VoicePlayer(
   private val seekTimeStore: DataStore<Int>,
   @AutoRewindAmountStore
   private val autoRewindAmountStore: DataStore<Int>,
+  @PlaybackModeStore
+  private val playbackModeStore: DataStore<PlaybackMode>,
   private val mediaItemProvider: MediaItemProvider,
   private val scope: CoroutineScope,
   private val chapterRepo: ChapterRepo,
@@ -196,12 +200,23 @@ class VoicePlayer(
   }
 
   override fun setPlayWhenReady(playWhenReady: Boolean) {
+    setPlayWhenReady(playWhenReady = playWhenReady, rewindOnPause = true)
+  }
+
+  fun pauseWithoutRewind() {
+    setPlayWhenReady(playWhenReady = false, rewindOnPause = false)
+  }
+
+  private fun setPlayWhenReady(
+    playWhenReady: Boolean,
+    rewindOnPause: Boolean,
+  ) {
     Logger.d("setPlayWhenReady=$playWhenReady")
     analytics.event(if (playWhenReady) "play" else "pause")
 
     if (playWhenReady) {
       updateLastPlayedAt()
-    } else {
+    } else if (rewindOnPause) {
       val currentPosition = player.currentPosition.takeUnless { it == C.TIME_UNSET }?.milliseconds ?: ZERO
       if (currentPosition > ZERO) {
         val autoRewindAmount = runBlocking { autoRewindAmountStore.data.first().seconds }
@@ -295,10 +310,32 @@ class VoicePlayer(
             book.content.currentChapterIndex,
             book.content.positionInChapter,
           )
+          applyPlaybackMode(runBlocking { playbackModeStore.data.first() })
           registerChapterMarkCallbacks(book.chapters)
         }
       } else {
         Logger.w("Unexpected mediaId=$mediaId")
+      }
+    }
+  }
+
+  private fun applyPlaybackMode(mode: PlaybackMode) {
+    when (mode) {
+      PlaybackMode.Sequential -> {
+        player.repeatMode = Player.REPEAT_MODE_OFF
+        player.shuffleModeEnabled = false
+      }
+      PlaybackMode.SingleTrackLoop -> {
+        player.repeatMode = Player.REPEAT_MODE_ONE
+        player.shuffleModeEnabled = false
+      }
+      PlaybackMode.Shuffle -> {
+        player.repeatMode = Player.REPEAT_MODE_OFF
+        player.shuffleModeEnabled = true
+      }
+      PlaybackMode.FolderLoop -> {
+        player.repeatMode = Player.REPEAT_MODE_ALL
+        player.shuffleModeEnabled = false
       }
     }
   }
@@ -359,6 +396,10 @@ class VoicePlayer(
     scope.launch {
       updateBook { it.copy(gain = gain.value) }
     }
+  }
+
+  fun setPlaybackMode(mode: PlaybackMode) {
+    applyPlaybackMode(mode)
   }
 
   private suspend fun updateBook(update: (BookContent) -> BookContent) {

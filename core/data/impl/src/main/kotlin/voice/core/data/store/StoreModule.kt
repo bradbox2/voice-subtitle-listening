@@ -14,6 +14,7 @@ import kotlinx.serialization.builtins.nullable
 import kotlinx.serialization.builtins.serializer
 import voice.core.data.BookId
 import voice.core.data.GridMode
+import voice.core.data.PlaybackMode
 import voice.core.data.sleeptimer.SleepTimerPreference
 import voice.core.featureflag.FeatureFlagOverride
 import kotlin.time.Duration
@@ -196,6 +197,17 @@ public interface StoreModule {
       serializer = SetSerializer(String.serializer()),
       defaultValue = emptySet(),
       fileName = "starredSubtitleCueKeys",
+    )
+  }
+
+  @Provides
+  @SingleIn(AppScope::class)
+  @PlaybackModeStore
+  private fun playbackMode(factory: VoiceDataStoreFactory): DataStore<PlaybackMode> {
+    return factory.create(
+      serializer = PlaybackMode.serializer(),
+      defaultValue = PlaybackMode.Sequential,
+      fileName = "playbackMode",
     )
   }
 }

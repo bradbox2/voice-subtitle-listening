@@ -46,3 +46,6 @@ public annotation class SubtitleFocusModeStore
 
 @Qualifier
 public annotation class StarredSubtitleCueKeysStore
+
+@Qualifier
+public annotation class PlaybackModeStore

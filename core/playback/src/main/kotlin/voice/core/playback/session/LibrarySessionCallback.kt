@@ -208,11 +208,17 @@ class LibrarySessionCallback(
       CustomCommand.ForceSeekToPrevious -> {
         player.forceSeekToPrevious()
       }
+      CustomCommand.PauseWithoutRewind -> {
+        player.pauseWithoutRewind()
+      }
       is CustomCommand.SetSkipSilence -> {
         player.setSkipSilenceEnabled(command.skipSilence)
       }
       is CustomCommand.SetGain -> {
         player.setGain(command.gain)
+      }
+      is CustomCommand.SetPlaybackMode -> {
+        player.setPlaybackMode(command.mode)
       }
     }
 

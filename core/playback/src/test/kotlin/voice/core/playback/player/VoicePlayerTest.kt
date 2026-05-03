@@ -29,6 +29,7 @@ import voice.core.data.Chapter
 import voice.core.data.ChapterId
 import voice.core.data.ChapterMark
 import voice.core.data.MarkData
+import voice.core.data.PlaybackMode
 import voice.core.logging.api.LogWriter
 import voice.core.logging.api.Logger
 import voice.core.playback.MemoryDataStore
@@ -59,6 +60,7 @@ class VoicePlayerTest {
   }
 
   private val seekTimeStore = MemoryDataStore(2)
+  private val autoRewindAmountStore = MemoryDataStore(5)
 
   private val internalPlayer = TestExoPlayerBuilder(ApplicationProvider.getApplicationContext())
     .setMediaSourceFactory(
@@ -98,7 +100,8 @@ class VoicePlayerTest {
       every { data } returns flowOf(bookId)
     },
     seekTimeStore = seekTimeStore,
-    autoRewindAmountStore = mockk(),
+    autoRewindAmountStore = autoRewindAmountStore,
+    playbackModeStore = MemoryDataStore(PlaybackMode.Sequential),
     scope = scope,
     chapterRepo = mockk {
       coEvery { this@mockk.get(any()) } answers {
@@ -315,6 +318,25 @@ class VoicePlayerTest {
     player.seekTo(1, 5_000)
     player.forceSeekToPrevious()
     player.shouldHavePosition(1, 0)
+  }
+
+  @Test
+  fun `pauseWithoutRewind pauses at current position`() = scope.runTest {
+    setMediaItems(
+      listOf(
+        chapter(
+          ChapterMark(startMs = 0, endMs = 20_000, name = null),
+        ),
+      ),
+    )
+
+    player.prepare()
+    awaitReady()
+    player.seekTo(10_000)
+
+    player.pauseWithoutRewind()
+
+    player.shouldHavePosition(0, 10_000)
   }
 
   private fun chapter(vararg marks: ChapterMark): Chapter {

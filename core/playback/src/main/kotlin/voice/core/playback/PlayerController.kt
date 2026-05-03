@@ -24,6 +24,7 @@ import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import voice.core.data.BookId
 import voice.core.data.ChapterId
+import voice.core.data.PlaybackMode
 import voice.core.data.repo.BookRepository
 import voice.core.data.store.CurrentBookStore
 import voice.core.logging.api.Logger
@@ -120,6 +121,20 @@ class PlayerController(
     }
   }
 
+  fun playPauseWithoutRewind() = executeAfterPrepare { controller ->
+    if (controller.isPlaying) {
+      controller.sendCustomCommand(CustomCommand.PauseWithoutRewind)
+    } else {
+      controller.play()
+    }
+  }
+
+  fun pauseWithoutRewind() = executeAfterPrepare { controller ->
+    if (controller.isPlaying) {
+      controller.sendCustomCommand(CustomCommand.PauseWithoutRewind)
+    }
+  }
+
   private suspend fun maybePrepare(controller: MediaController): Boolean {
     val bookId = currentBookStoreId.data.first() ?: return false
     if (controller.currentBookId() == bookId &&
@@ -155,6 +170,10 @@ class PlayerController(
 
   fun setGain(gain: Decibel) = executeAfterPrepare { controller ->
     controller.sendCustomCommand(CustomCommand.SetGain(gain))
+  }
+
+  fun setPlaybackMode(mode: PlaybackMode) = executeAfterPrepare { controller ->
+    controller.sendCustomCommand(CustomCommand.SetPlaybackMode(mode))
   }
 
   fun setVolume(volume: Float) = executeAfterPrepare {

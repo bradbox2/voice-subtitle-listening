@@ -1,1 +1,1 @@
-Subtitle listening fork for offline audiobooks. SRT practice, tap-to-seek, no ads.
+GPLv3 fork for subtitle-driven audiobook practice. SRT support, tap-to-seek, no ads.

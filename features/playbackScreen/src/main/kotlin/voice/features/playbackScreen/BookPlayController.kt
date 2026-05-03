@@ -65,7 +65,7 @@ fun BookPlayScreen(bookId: BookId) {
     onSubtitleClick = viewModel::onSubtitleClick,
     onSubtitleFocusModeClick = viewModel::toggleSubtitleFocusMode,
     onSubtitleStarClick = viewModel::onSubtitleStarClick,
-    onRepeatSentenceClick = viewModel::toggleRepeatSentence,
+    onPlaybackModeClick = viewModel::togglePlaybackMode,
     onRefreshClick = viewModel::refreshSubtitles,
     onBookmarkClick = viewModel::onBookmarkClick,
     onBookmarkLongClick = viewModel::onBookmarkLongClick,

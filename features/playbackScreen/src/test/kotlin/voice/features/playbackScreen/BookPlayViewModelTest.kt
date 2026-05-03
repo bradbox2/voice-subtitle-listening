@@ -29,6 +29,7 @@ import voice.core.data.Bookmark
 import voice.core.data.Chapter
 import voice.core.data.ChapterId
 import voice.core.data.MarkData
+import voice.core.data.PlaybackMode
 import voice.core.data.sleeptimer.SleepTimerPreference
 import voice.core.data.toUri
 import voice.core.featureflag.MemoryFeatureFlag
@@ -56,6 +57,7 @@ class BookPlayViewModelTest {
   private val sleepTimerDataStore = MemoryDataStore(SleepTimerPreference.Default.copy(duration = 5.minutes))
   private val subtitleFocusModeEnabledStore = MemoryDataStore(true)
   private val starredSubtitleCueKeysStore = MemoryDataStore(emptySet<String>())
+  private val playbackModeStore = MemoryDataStore(PlaybackMode.Sequential)
   private val book = book()
   private val sleepTimer = mockk<SleepTimer> {
     val stateFlow = MutableStateFlow<SleepTimerState>(SleepTimerState.Disabled)
@@ -124,6 +126,7 @@ class BookPlayViewModelTest {
     sleepTimerPreferenceStore = sleepTimerDataStore,
     subtitleFocusModeEnabledStore = subtitleFocusModeEnabledStore,
     starredSubtitleCueKeysStore = starredSubtitleCueKeysStore,
+    playbackModeStore = playbackModeStore,
     bookId = book.id,
     dispatcherProvider = DispatcherProvider(scope.coroutineContext, scope.coroutineContext, scope.coroutineContext),
     experimentalPlaybackPersistenceFeatureFlag = MemoryFeatureFlag(false),
@@ -322,6 +325,52 @@ class BookPlayViewModelTest {
   }
 
   @Test
+  fun `playPause uses no rewind toggle when subtitles are active`() = scope.runTest {
+    val livePlaybackFlow = MutableStateFlow<LivePlaybackState?>(
+      LivePlaybackState(
+        bookId = book.id,
+        chapterId = book.currentChapter.id,
+        positionMs = 30.seconds.inWholeMilliseconds,
+        isPlaying = true,
+        playbackSpeed = 1F,
+      ),
+    )
+    val player = mockk<PlayerController> {
+      every { pauseIfCurrentBookDifferentFrom(book.id) } just Runs
+      every { livePlaybackStateFlow(book.id) } returns livePlaybackFlow
+      every { playPauseWithoutRewind() } just Runs
+      every { playPause() } just Runs
+    }
+    val viewModel = viewModel(
+      livePlaybackFlow = livePlaybackFlow,
+      playStateFlow = MutableStateFlow(PlayStateManager.PlayState.Playing),
+      player = player,
+      subtitleLoader = mockk {
+        every { loadForAudio(book.currentChapter.id.toUri()) } returns listOf(
+          SubtitleCue(
+            startMs = 20.seconds.inWholeMilliseconds,
+            endMs = 40.seconds.inWholeMilliseconds,
+            text = "Subtitle line",
+          ),
+        )
+      },
+    )
+
+    backgroundScope.launchMolecule(RecompositionMode.Immediate) {
+      viewModel.viewState()
+    }.test {
+      awaitItem() shouldBe null
+      awaitItem()!!
+    }
+
+    viewModel.playPause()
+    yield()
+
+    verify { player.playPauseWithoutRewind() }
+    verify(exactly = 0) { player.playPause() }
+  }
+
+  @Test
   fun `viewState shows parsed subtitles and marks active cue`() = scope.runTest {
     val cues = listOf(
       SubtitleCue(
@@ -353,6 +402,7 @@ class BookPlayViewModelTest {
       state.subtitles shouldBe BookPlayViewState.SubtitlePanelViewState(
         visible = true,
         repeatSentenceEnabled = false,
+        playbackMode = PlaybackMode.Sequential,
         activeIndex = 0,
         speedOptions = listOf(
           BookPlayViewState.SubtitlePanelViewState.SpeedOption(speed = 0.75F, selected = false),
@@ -661,6 +711,30 @@ class BookPlayViewModelTest {
   }
 
   @Test
+  fun `togglePlaybackMode cycles through playback modes`() = scope.runTest {
+    val playbackModeStore = MemoryDataStore(PlaybackMode.Sequential)
+    val player = mockk<PlayerController> {
+      every { pauseIfCurrentBookDifferentFrom(book.id) } just Runs
+      every { livePlaybackStateFlow(book.id) } returns MutableStateFlow(null)
+      every { setPlaybackMode(any()) } just Runs
+    }
+    val viewModel = viewModel(
+      playbackModeStore = playbackModeStore,
+      player = player,
+    )
+
+    viewModel.togglePlaybackMode()
+    yield()
+    playbackModeStore.data.first() shouldBe PlaybackMode.SingleTrackLoop
+    verify(exactly = 1) { player.setPlaybackMode(PlaybackMode.SingleTrackLoop) }
+
+    viewModel.togglePlaybackMode()
+    yield()
+    playbackModeStore.data.first() shouldBe PlaybackMode.Shuffle
+    verify(exactly = 1) { player.setPlaybackMode(PlaybackMode.Shuffle) }
+  }
+
+  @Test
   fun `onSubtitleClick seeks exactly to cue start by default`() = scope.runTest {
     val player = mockk<PlayerController> {
       every { pauseIfCurrentBookDifferentFrom(book.id) } just Runs
@@ -739,6 +813,15 @@ class BookPlayViewModelTest {
       } while (state?.subtitles == null)
 
       viewModel.toggleRepeatSentence()
+      livePlaybackFlow.value = LivePlaybackState(
+        bookId = book.id,
+        chapterId = book.currentChapter.id,
+        positionMs = 2.5.minutes.inWholeMilliseconds,
+        isPlaying = true,
+        playbackSpeed = 1F,
+      )
+      awaitItem()
+
       livePlaybackFlow.value = LivePlaybackState(
         bookId = book.id,
         chapterId = book.currentChapter.id,
@@ -826,6 +909,15 @@ class BookPlayViewModelTest {
       livePlaybackFlow.value = LivePlaybackState(
         bookId = book.id,
         chapterId = book.currentChapter.id,
+        positionMs = 4.5.minutes.inWholeMilliseconds,
+        isPlaying = true,
+        playbackSpeed = 1F,
+      )
+      awaitItem()
+
+      livePlaybackFlow.value = LivePlaybackState(
+        bookId = book.id,
+        chapterId = book.currentChapter.id,
         positionMs = 5.minutes.inWholeMilliseconds - 80,
         isPlaying = true,
         playbackSpeed = 1F,
@@ -887,7 +979,7 @@ class BookPlayViewModelTest {
       livePlaybackFlow.value = LivePlaybackState(
         bookId = book.id,
         chapterId = book.currentChapter.id,
-        positionMs = 4.minutes.inWholeMilliseconds,
+        positionMs = 4.5.minutes.inWholeMilliseconds,
         isPlaying = true,
         playbackSpeed = 1F,
       )
@@ -914,6 +1006,65 @@ class BookPlayViewModelTest {
           time = 4.minutes.inWholeMilliseconds,
           id = book.currentChapter.id,
         )
+      }
+      cancelAndIgnoreRemainingEvents()
+    }
+  }
+
+  @Test
+  fun `repeat sentence does not seek immediately after resuming near cue end`() = scope.runTest {
+    val livePlaybackFlow = MutableStateFlow<LivePlaybackState?>(null)
+    val player = mockk<PlayerController> {
+      every { pauseIfCurrentBookDifferentFrom(book.id) } just Runs
+      every { livePlaybackStateFlow(book.id) } returns livePlaybackFlow
+      every { setPosition(any(), any()) } just Runs
+    }
+    val cues = listOf(
+      SubtitleCue(
+        startMs = 2.minutes.inWholeMilliseconds,
+        endMs = 3.minutes.inWholeMilliseconds,
+        text = "Loop me",
+      ),
+    )
+    val viewModel = viewModel(
+      experimentalPlaybackPersistence = true,
+      livePlaybackFlow = livePlaybackFlow,
+      player = player,
+      subtitleLoader = mockk {
+        every { loadForAudio(book.currentChapter.id.toUri()) } returns cues
+      },
+    )
+
+    backgroundScope.launchMolecule(RecompositionMode.Immediate) {
+      viewModel.viewState()
+    }.test {
+      awaitItem() shouldBe null
+      var state: BookPlayViewState?
+      do {
+        state = awaitItem()
+      } while (state?.subtitles == null)
+
+      viewModel.toggleRepeatSentence()
+      livePlaybackFlow.value = LivePlaybackState(
+        bookId = book.id,
+        chapterId = book.currentChapter.id,
+        positionMs = 3.minutes.inWholeMilliseconds - 80,
+        isPlaying = false,
+        playbackSpeed = 1F,
+      )
+      awaitItem()
+
+      livePlaybackFlow.value = LivePlaybackState(
+        bookId = book.id,
+        chapterId = book.currentChapter.id,
+        positionMs = 3.minutes.inWholeMilliseconds - 70,
+        isPlaying = true,
+        playbackSpeed = 1F,
+      )
+      awaitItem()
+
+      verify(exactly = 0) {
+        player.setPosition(any(), any())
       }
       cancelAndIgnoreRemainingEvents()
     }
@@ -993,9 +1144,11 @@ class BookPlayViewModelTest {
     mediaScanTrigger: MediaScanTrigger = this.mediaScanTrigger,
     subtitleFocusModeEnabledStore: MemoryDataStore<Boolean> = this.subtitleFocusModeEnabledStore,
     starredSubtitleCueKeysStore: MemoryDataStore<Set<String>> = this.starredSubtitleCueKeysStore,
+    playbackModeStore: MemoryDataStore<PlaybackMode> = this.playbackModeStore,
     player: PlayerController = mockk {
       every { pauseIfCurrentBookDifferentFrom(book.id) } just Runs
       every { livePlaybackStateFlow(book.id) } returns livePlaybackFlow
+      every { playPauseWithoutRewind() } just Runs
     },
   ): BookPlayViewModel {
     val resolver = mockk<CurrentBookResolver> {
@@ -1023,6 +1176,7 @@ class BookPlayViewModelTest {
       sleepTimerPreferenceStore = sleepTimerDataStore,
       subtitleFocusModeEnabledStore = subtitleFocusModeEnabledStore,
       starredSubtitleCueKeysStore = starredSubtitleCueKeysStore,
+      playbackModeStore = playbackModeStore,
       bookId = book.id,
       dispatcherProvider = DispatcherProvider(scope.coroutineContext, scope.coroutineContext, scope.coroutineContext),
       experimentalPlaybackPersistenceFeatureFlag = MemoryFeatureFlag(experimentalPlaybackPersistence),
