@@ -9,8 +9,6 @@ plugins {
   id("voice.compose")
   alias(libs.plugins.kotlin.serialization)
   alias(libs.plugins.metro)
-  alias(libs.plugins.crashlytics) apply false
-  alias(libs.plugins.googleServices) apply false
 }
 
 fun includeProprietaryLibraries(): Boolean {
@@ -27,8 +25,8 @@ fun includeProprietaryLibraries(): Boolean {
 }
 
 if (includeProprietaryLibraries()) {
-  pluginManager.apply(libs.plugins.googleServices.get().pluginId)
-  pluginManager.apply(libs.plugins.crashlytics.get().pluginId)
+  pluginManager.apply("com.google.gms.google-services")
+  pluginManager.apply("com.google.firebase.crashlytics")
 }
 
 android {
