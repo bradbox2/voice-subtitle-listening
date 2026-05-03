@@ -2,7 +2,7 @@
 
 ## Project Setup
 
-To run the project, open it in the latest Version of Android Studio and build the project as usual.
+To run the project, open it in the latest version of Android Studio and build the project as usual.
 
 By default, there is not enough memory configured for gradle. You can fix this by running.
 
@@ -51,7 +51,7 @@ To unlock it:
 
 ## Ktlint
 
-Voice uses **Ktlint** to enforce consistent code formatting.
+This fork uses **Ktlint** to enforce consistent code formatting.
 
 - Check for formatting issues:
 
@@ -74,28 +74,27 @@ chmod +x .git/hooks/pre-commit
 
 ## Releasing
 
-To release a new version, trigger the [Release Workflow](https://github.com/PaulWoitaschek/Voice/actions/workflows/trigger_release.yml)
+To release a new version, trigger the [Release Workflow](https://github.com/bradbox2/voice-subtitle-listening/actions/workflows/trigger_release.yml)
 
-This pushes a tag and publishes the release to the Play Store’s internal track. From there, promotion to production must be done
-manually.
+This pushes a tag and publishes the release to the Play Store's internal track. From there, promotion to production must be done manually.
 
 F-Droid builds are handled by their team and usually appear a few days after a stable (non-RC) release.
 
 ## Versioning
 
-Voice uses [calendar versioning (CalVer)](https://calver.org/).
+This fork uses [calendar versioning (CalVer)](https://calver.org/).
 
 - Version name format: `YY.M.RELEASE`
-  - `YY`: release year, last 2 digits (2025 → 25)
-  - `M`: release month (1–12)
+  - `YY`: release year, last 2 digits (2025 -> 25)
+  - `M`: release month (1-12)
   - `RELEASE`: counter for releases within the same month (starting at 1)
 - Tag format (used by CI): `YY.M.RELEASE-CODE`
   - `CODE` is the numeric Android versionCode derived from the version name using the formula below.
 
 Examples:
 
-- First release in September 2025 → version name `25.9.1`
-- Tag includes version code → `25.9.1-5309001`
+- First release in September 2025 -> version name `25.9.1`
+- Tag includes version code -> `25.9.1-5309001`
 
 ### Version code
 
@@ -103,14 +102,12 @@ The Android `versionCode` is calculated from the version name with:
 
 `CODE = (YY + 28)(MM as 2 digits)(RELEASE as 3 digits)`
 
-Example: `25.9.1` → `(25+28)=53`, `MM=09`, `RELEASE=001` → `5309001`.
+Example: `25.9.1` -> `(25+28)=53`, `MM=09`, `RELEASE=001` -> `5309001`.
 
 This code is embedded in the git tag by `release.main.kts` and used by CI and Fastlane.
 
 ## Pages Deployment
 
-To projects [Website](https://voice.woitaschek.de/) uses Github Pages and Mkdocs.
-To deploy a new website, use dispatch a workflow
-manually.
+The project website uses GitHub Pages and MkDocs. To deploy a new website, dispatch the workflow manually.
 
-[👉 Dispatch Workflow](https://github.com/VoiceAudiobook/Voice/actions/workflows/deploy_pages.yml)
+[Dispatch Workflow](https://github.com/bradbox2/voice-subtitle-listening/actions/workflows/deploy_pages.yml)

@@ -1,12 +1,11 @@
-# About Voice
+# About this fork
 
-Voice is a simple and intuitive audiobook player that explores new technologies, design ideas, and modern coding practices. Our goal is to
-create an app that is both reliable and a joy to use — powered by a design philosophy that favors minimalism.
+Voice Subtitle Listening Practice is a fork of Voice focused on subtitle-driven listening practice without losing the original audiobook experience.
 
-Key characteristics of Voice include:
+Key characteristics of this fork:
 
-- **User Focus:** Prioritizing intuitive and straightforward usage.
-- **Minimalism:** Only essential features and settings are included to maintain simplicity.
-- **Reliability:** Regular updates and community feedback help to keep the app stable.
+- **Fork-first:** The project is presented as its own app, not as a mirror of upstream Voice.
+- **Subtitle practice:** Subtitles are part of the listening workflow when available.
+- **Reliability:** The app keeps the original audiobook playback behavior when subtitles are not present.
 
-Want to know more or get involved? Browse the other sections for development details and licensing information.
+Want to know more or get involved? Browse the other sections for development details and licensing information, or visit [bradbox2/voice-subtitle-listening](https://github.com/bradbox2/voice-subtitle-listening).
