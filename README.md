@@ -1,8 +1,6 @@
-# Subtitle Practice Fork
+# Voice Subtitle Listening Practice
 
-![CI](https://github.com/VoiceAudiobook/Voice/actions/workflows/ci.yml/badge.svg?branch=main) <a href="https://hosted.weblate.org/engage/voice/">
-<img src="https://hosted.weblate.org/widgets/voice/-/svg-badge.svg" alt="Translation status" />
-</a>
+![CI](https://github.com/bradbox2/voice-subtitle-listening/actions/workflows/ci.yml/badge.svg?branch=main)
 
 This is a GPLv3-licensed fork of Voice by Paul Woitaschek.
 
