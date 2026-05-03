@@ -24,6 +24,8 @@ import voice.core.common.DispatcherProvider
 import voice.core.common.MainScope
 import voice.core.data.Book
 import voice.core.data.BookId
+import voice.core.data.Chapter
+import voice.core.data.ChapterId
 import voice.core.data.durationMs
 import voice.core.data.markForPosition
 import voice.core.data.repo.BookRepository
@@ -38,6 +40,7 @@ import voice.core.featureflag.ExperimentalPlaybackPersistenceQualifier
 import voice.core.featureflag.FeatureFlag
 import voice.core.logging.api.Logger
 import voice.core.playback.CurrentBookResolver
+import voice.core.playback.LivePlaybackState
 import voice.core.playback.PlayerController
 import voice.core.playback.misc.Decibel
 import voice.core.playback.misc.VolumeGain
@@ -100,6 +103,9 @@ class BookPlayViewModel(
   private val selectedSubtitleCueStartMs = mutableStateOf<Long?>(null)
   private val subtitleRefreshKey = mutableIntStateOf(0)
   private var loopSeekPendingForCueStartMs: Long? = null
+  private var activePlaybackChapterId: ChapterId? = null
+  private var activePlaybackPositionMs: Long? = null
+  private var activeSubtitleChapterId: ChapterId? = null
 
   init {
     scope.launch {
@@ -121,56 +127,69 @@ class BookPlayViewModel(
       playStateManager.flow
     }.collectAsState()
 
-    val book = if (experimentalPlaybackPersistence && livePlaybackState != null) {
+    val book = if (
+      experimentalPlaybackPersistence &&
+      livePlaybackState != null &&
+      livePlaybackState.chapterId in persistedBook.content.chapters
+    ) {
       persistedBook.overlay(livePlaybackState)
     } else {
       persistedBook
     }
-    val subtitleChapter = livePlaybackState
-      ?.chapterId
-      ?.let { liveChapterId -> book.chapters.firstOrNull { it.id == liveChapterId } }
-      ?: book.currentChapter
-    val audioUri = subtitleChapter.id.toUri()
+    val playbackSnapshot = book.playbackSnapshot(
+      persistedBook = persistedBook,
+      livePlaybackState = livePlaybackState,
+      managerPlayState = managerPlayState,
+    )
+    activePlaybackChapterId = playbackSnapshot.activeChapter?.id
+    activePlaybackPositionMs = playbackSnapshot.activePositionMs.takeIf { playbackSnapshot.activeChapter != null }
+    activeSubtitleChapterId = playbackSnapshot.activeChapter?.id
+
+    val displayChapter = playbackSnapshot.activeChapter ?: book.currentChapter
+    val displayPositionMs = if (playbackSnapshot.activeChapter != null) {
+      playbackSnapshot.activePositionMs
+    } else {
+      book.content.positionInChapter
+    }
+    val subtitleChapterId = playbackSnapshot.activeChapter?.id
     Log.d(
       SUBTITLE_LOG_TAG,
-      "viewState bookTitle=${book.content.name} currentChapter.id=${subtitleChapter.id} currentChapter.id.toUri()=$audioUri",
+      "viewState bookTitle=${book.content.name} activeChapter.id=$subtitleChapterId activeChapter.id.toUri()=${subtitleChapterId?.toUri()}",
     )
-    val isPlaying = livePlaybackState?.isPlaying ?: (managerPlayState == PlayStateManager.PlayState.Playing)
     val subtitleCues by produceState<List<SubtitleCue>>(
       initialValue = emptyList(),
-      key1 = subtitleChapter.id,
+      key1 = subtitleChapterId,
       key2 = subtitleRefreshKey.intValue,
     ) {
       value = emptyList()
+      val chapterId = subtitleChapterId ?: return@produceState
       value = withContext(dispatcherProvider.io) {
-        subtitleLoader.loadForAudio(audioUri)
+        subtitleLoader.loadForAudio(chapterId.toUri())
       }
     }
-    val subtitlePositionMs = livePlaybackState
-      ?.takeIf { it.chapterId == subtitleChapter.id }
-      ?.positionMs
-      ?: book.content.positionInChapter
-    val currentSubtitlePlaybackSpeed = livePlaybackState?.playbackSpeed ?: book.content.playbackSpeed
+    val subtitlePositionMs = playbackSnapshot.activePositionMs
+    val currentSubtitlePlaybackSpeed = playbackSnapshot.activePlaybackSpeed
 
     LaunchedEffect(
-      subtitleChapter.id,
+      playbackSnapshot.activeChapter?.id,
       subtitlePositionMs,
       subtitleCues,
       repeatSentenceEnabled.value,
     ) {
+      val subtitleChapterId = playbackSnapshot.activeChapter?.id ?: return@LaunchedEffect
       updateRepeatSentenceLoop(
         cues = subtitleCues,
         positionMs = subtitlePositionMs,
-        chapterId = subtitleChapter.id,
+        chapterId = subtitleChapterId,
       )
     }
 
-    val currentMark = book.currentChapter.markForPosition(book.content.positionInChapter)
-    val positionInCurrentMark = if (isPlaying && currentMark.durationMs > 0) {
-      val relativePosition = book.content.positionInChapter - currentMark.startMs
+    val currentMark = displayChapter.markForPosition(displayPositionMs)
+    val positionInCurrentMark = if (playbackSnapshot.activeIsPlaying && currentMark.durationMs > 0) {
+      val relativePosition = displayPositionMs - currentMark.startMs
       relativePosition.coerceIn(0L, currentMark.durationMs)
     } else {
-      book.content.positionInChapter - currentMark.startMs
+      displayPositionMs - currentMark.startMs
     }
 
     val sleepTime = remember { sleepTimer.state }.collectAsState().value
@@ -187,12 +206,17 @@ class BookPlayViewModel(
       repeatSentenceEnabled = repeatSentenceEnabled.value,
       starredCueKeys = starredSubtitleCueKeys,
       bookId = book.id,
-      chapterId = subtitleChapter.id,
+      chapterId = playbackSnapshot.activeChapter?.id ?: book.currentChapter.id,
     )
     logSubtitleSync(
       playbackSpeed = currentSubtitlePlaybackSpeed,
       livePlayerPositionMs = livePlaybackState?.positionMs,
       bookPositionInChapterMs = persistedBook.content.positionInChapter,
+      activeChapterId = playbackSnapshot.activeChapter?.id,
+      liveChapterId = livePlaybackState?.chapterId,
+      persistedCurrentChapterId = persistedBook.content.currentChapter,
+      activePositionMs = playbackSnapshot.activePositionMs,
+      subtitlePositionSource = playbackSnapshot.subtitlePositionSource,
       subtitlePositionMs = subtitlePositionMs,
       currentCueIndex = subtitlePanelViewState?.activeIndex,
       currentCue = subtitlePanelViewState?.activeIndex?.let(subtitleCues::getOrNull),
@@ -203,7 +227,7 @@ class BookPlayViewModel(
     )
     return BookPlayViewState(
       sleepTimerState = sleepTime.toViewState(),
-      playing = isPlaying,
+      playing = playbackSnapshot.activeIsPlaying,
       title = book.content.name,
       showPreviousNextButtons = hasMoreThanOneChapter,
       chapterName = currentMark.name.takeIf { hasMoreThanOneChapter },
@@ -398,9 +422,12 @@ class BookPlayViewModel(
   fun seekTo(position: Duration) {
     scope.launch {
       val book = currentBook() ?: return@launch
-      val currentChapter = book.currentChapter
-      val currentMark = currentChapter.markForPosition(book.content.positionInChapter)
-      player.setPosition(currentMark.startMs + position.inWholeMilliseconds, currentChapter.id)
+      val chapter = activePlaybackChapterId
+        ?.let { activeChapterId -> book.chapters.firstOrNull { it.id == activeChapterId } }
+        ?: book.currentChapter
+      val positionMs = activePlaybackPositionMs ?: book.content.positionInChapter
+      val currentMark = chapter.markForPosition(positionMs)
+      player.setPosition(currentMark.startMs + position.inWholeMilliseconds, chapter.id)
     }
   }
 
@@ -409,9 +436,12 @@ class BookPlayViewModel(
     loopSeekPendingForCueStartMs = null
     scope.launch {
       val book = currentBook() ?: return@launch
+      val chapterId = activeSubtitleChapterId
+        ?: activePlaybackChapterId
+        ?: book.currentChapter.id
       player.setPosition(
         time = (cueStartMs - SUBTITLE_SEEK_PRE_ROLL_MS).coerceAtLeast(0),
-        id = book.currentChapter.id,
+        id = chapterId,
       )
     }
   }
@@ -478,7 +508,7 @@ class BookPlayViewModel(
   private fun updateRepeatSentenceLoop(
     cues: List<SubtitleCue>,
     positionMs: Long,
-    chapterId: voice.core.data.ChapterId,
+    chapterId: ChapterId,
   ) {
     if (cues.isEmpty()) {
       repeatSentenceEnabled.value = false
@@ -538,7 +568,7 @@ private fun List<SubtitleCue>.toSubtitlePanelViewState(
   repeatSentenceEnabled: Boolean,
   starredCueKeys: Set<String>,
   bookId: BookId,
-  chapterId: voice.core.data.ChapterId,
+  chapterId: ChapterId,
 ): BookPlayViewState.SubtitlePanelViewState? {
   if (isEmpty()) return null
 
@@ -572,10 +602,55 @@ private const val SUBTITLE_SYNC_LOG_TAG = "VoiceSubtitleSync"
 private const val SUBTITLE_SEEK_PRE_ROLL_MS = 0L
 private const val SUBTITLE_LOOP_THRESHOLD_MS = 80L
 
+private enum class SubtitlePositionSource {
+  LIVE,
+  PERSISTED_INITIAL_ONLY,
+}
+
+private data class PlaybackSnapshot(
+  val activeChapter: Chapter?,
+  val activePositionMs: Long,
+  val activePlaybackSpeed: Float,
+  val activeIsPlaying: Boolean,
+  val subtitlePositionSource: SubtitlePositionSource,
+)
+
+private fun Book.playbackSnapshot(
+  persistedBook: Book,
+  livePlaybackState: LivePlaybackState?,
+  managerPlayState: PlayStateManager.PlayState,
+): PlaybackSnapshot {
+  val liveChapter = livePlaybackState
+    ?.chapterId
+    ?.let { liveChapterId -> chapters.firstOrNull { it.id == liveChapterId } }
+  return if (livePlaybackState != null) {
+    PlaybackSnapshot(
+      activeChapter = liveChapter,
+      activePositionMs = livePlaybackState.positionMs,
+      activePlaybackSpeed = livePlaybackState.playbackSpeed,
+      activeIsPlaying = livePlaybackState.isPlaying,
+      subtitlePositionSource = SubtitlePositionSource.LIVE,
+    )
+  } else {
+    PlaybackSnapshot(
+      activeChapter = currentChapter,
+      activePositionMs = persistedBook.content.positionInChapter,
+      activePlaybackSpeed = persistedBook.content.playbackSpeed,
+      activeIsPlaying = managerPlayState == PlayStateManager.PlayState.Playing,
+      subtitlePositionSource = SubtitlePositionSource.PERSISTED_INITIAL_ONLY,
+    )
+  }
+}
+
 private fun logSubtitleSync(
   playbackSpeed: Float,
   livePlayerPositionMs: Long?,
   bookPositionInChapterMs: Long,
+  activeChapterId: ChapterId?,
+  liveChapterId: ChapterId?,
+  persistedCurrentChapterId: ChapterId,
+  activePositionMs: Long,
+  subtitlePositionSource: SubtitlePositionSource,
   subtitlePositionMs: Long,
   currentCueIndex: Int?,
   currentCue: SubtitleCue?,
@@ -584,6 +659,11 @@ private fun logSubtitleSync(
   Log.d(
     SUBTITLE_SYNC_LOG_TAG,
     "playbackSpeed=$playbackSpeed " +
+      "subtitlePositionSource=$subtitlePositionSource " +
+      "activeChapterId=$activeChapterId " +
+      "liveChapterId=$liveChapterId " +
+      "persistedCurrentChapterId=$persistedCurrentChapterId " +
+      "activePositionMs=$activePositionMs " +
       "livePlayerPositionMs=$livePlayerPositionMs " +
       "bookPositionInChapterMs=$bookPositionInChapterMs " +
       "subtitlePositionMs=$subtitlePositionMs " +

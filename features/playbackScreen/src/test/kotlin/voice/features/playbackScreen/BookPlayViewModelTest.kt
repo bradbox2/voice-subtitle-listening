@@ -426,6 +426,193 @@ class BookPlayViewModelTest {
   }
 
   @Test
+  fun `subtitles use live player position instead of stale persisted position`() = scope.runTest {
+    val persistedBook = book(positionInChapter = 2.5.minutes.inWholeMilliseconds)
+    val livePlaybackFlow = MutableStateFlow<LivePlaybackState?>(
+      LivePlaybackState(
+        bookId = persistedBook.id,
+        chapterId = persistedBook.currentChapter.id,
+        positionMs = 1.5.minutes.inWholeMilliseconds,
+        isPlaying = true,
+        playbackSpeed = 1F,
+      ),
+    )
+    val cues = listOf(
+      SubtitleCue(
+        startMs = 1.minutes.inWholeMilliseconds,
+        endMs = 2.minutes.inWholeMilliseconds,
+        text = "Live position cue",
+      ),
+      SubtitleCue(
+        startMs = 2.minutes.inWholeMilliseconds,
+        endMs = 3.minutes.inWholeMilliseconds,
+        text = "Persisted position cue",
+      ),
+    )
+    val viewModel = viewModel(
+      book = persistedBook,
+      experimentalPlaybackPersistence = true,
+      livePlaybackFlow = livePlaybackFlow,
+      subtitleLoader = mockk {
+        every { loadForAudio(persistedBook.currentChapter.id.toUri()) } returns cues
+      },
+    )
+
+    backgroundScope.launchMolecule(RecompositionMode.Immediate) {
+      viewModel.viewState()
+    }.test {
+      awaitItem() shouldBe null
+      val state = awaitStateWithSubtitles()
+
+      state.subtitles!!.activeIndex shouldBe 0
+      state.subtitles.items[0].active shouldBe true
+      state.subtitles.items[1].active shouldBe false
+    }
+  }
+
+  @Test
+  fun `subtitles use live chapter when it differs from persisted current chapter`() = scope.runTest {
+    val persistedBook = book(currentChapterIndex = 1, positionInChapter = 2.5.minutes.inWholeMilliseconds)
+    val liveChapter = persistedBook.chapters.first()
+    val livePlaybackFlow = MutableStateFlow<LivePlaybackState?>(
+      LivePlaybackState(
+        bookId = persistedBook.id,
+        chapterId = liveChapter.id,
+        positionMs = 1.5.minutes.inWholeMilliseconds,
+        isPlaying = true,
+        playbackSpeed = 1F,
+      ),
+    )
+    val liveChapterCues = listOf(
+      SubtitleCue(
+        startMs = 1.minutes.inWholeMilliseconds,
+        endMs = 2.minutes.inWholeMilliseconds,
+        text = "Live chapter cue",
+      ),
+    )
+    val viewModel = viewModel(
+      book = persistedBook,
+      experimentalPlaybackPersistence = true,
+      livePlaybackFlow = livePlaybackFlow,
+      subtitleLoader = mockk {
+        every { loadForAudio(any()) } returns liveChapterCues
+      },
+    )
+
+    backgroundScope.launchMolecule(RecompositionMode.Immediate) {
+      viewModel.viewState()
+    }.test {
+      awaitItem() shouldBe null
+      val state = awaitStateWithSubtitles()
+
+      state.subtitles!!.activeIndex shouldBe 0
+      state.subtitles.items.single().starKey shouldBe liveChapterCues.single().subtitleCueKey(
+        bookId = persistedBook.id,
+        chapterId = liveChapter.id,
+      )
+    }
+  }
+
+  @Test
+  fun `onSubtitleClick seeks using active live chapter instead of persisted current chapter`() = scope.runTest {
+    val persistedBook = book(currentChapterIndex = 1)
+    val liveChapter = persistedBook.chapters.first()
+    val livePlaybackFlow = MutableStateFlow<LivePlaybackState?>(
+      LivePlaybackState(
+        bookId = persistedBook.id,
+        chapterId = liveChapter.id,
+        positionMs = 1.5.minutes.inWholeMilliseconds,
+        isPlaying = true,
+        playbackSpeed = 1F,
+      ),
+    )
+    val player = mockk<PlayerController> {
+      every { pauseIfCurrentBookDifferentFrom(persistedBook.id) } just Runs
+      every { livePlaybackStateFlow(persistedBook.id) } returns livePlaybackFlow
+      every { setPosition(any(), any()) } just Runs
+    }
+    val viewModel = viewModel(
+      book = persistedBook,
+      experimentalPlaybackPersistence = true,
+      livePlaybackFlow = livePlaybackFlow,
+      player = player,
+      subtitleLoader = mockk {
+        every { loadForAudio(liveChapter.id.toUri()) } returns listOf(
+          SubtitleCue(
+            startMs = 1.minutes.inWholeMilliseconds,
+            endMs = 2.minutes.inWholeMilliseconds,
+            text = "Tap me",
+          ),
+        )
+      },
+    )
+
+    backgroundScope.launchMolecule(RecompositionMode.Immediate) {
+      viewModel.viewState()
+    }.test {
+      awaitItem() shouldBe null
+      awaitStateWithSubtitles().subtitles!!.items.single().text shouldBe "Tap me"
+
+      viewModel.onSubtitleClick(1.minutes.inWholeMilliseconds)
+      yield()
+
+      verify(exactly = 1) {
+        player.setPosition(
+          time = 1.minutes.inWholeMilliseconds,
+          id = liveChapter.id,
+        )
+      }
+      cancelAndIgnoreRemainingEvents()
+    }
+  }
+
+  @Test
+  fun `subtitle cue lookup does not scale live position by playback speed`() = scope.runTest {
+    val livePlaybackFlow = MutableStateFlow<LivePlaybackState?>(
+      LivePlaybackState(
+        bookId = book.id,
+        chapterId = book.currentChapter.id,
+        positionMs = 160_000L,
+        isPlaying = true,
+        playbackSpeed = 1.25F,
+      ),
+    )
+    val cues = listOf(
+      SubtitleCue(
+        startMs = 150_000L,
+        endMs = 170_000L,
+        text = "Unscaled cue",
+      ),
+      SubtitleCue(
+        startMs = 195_000L,
+        endMs = 205_000L,
+        text = "Scaled cue",
+      ),
+    )
+    val viewModel = viewModel(
+      experimentalPlaybackPersistence = true,
+      livePlaybackFlow = livePlaybackFlow,
+      subtitleLoader = mockk {
+        every { loadForAudio(book.currentChapter.id.toUri()) } returns cues
+      },
+    )
+
+    backgroundScope.launchMolecule(RecompositionMode.Immediate) {
+      viewModel.viewState()
+    }.test {
+      awaitItem() shouldBe null
+      val state = awaitStateWithSubtitles()
+
+      state.subtitles!!.activeIndex shouldBe 0
+      state.subtitles.speedOptions shouldContainExactly listOf(
+        BookPlayViewState.SubtitlePanelViewState.SpeedOption(speed = 0.75F, selected = false),
+        BookPlayViewState.SubtitlePanelViewState.SpeedOption(speed = 1.0F, selected = false),
+        BookPlayViewState.SubtitlePanelViewState.SpeedOption(speed = 1.25F, selected = true),
+      )
+    }
+  }
+
+  @Test
   fun `onSubtitleClick seeks exactly to cue start by default`() = scope.runTest {
     val player = mockk<PlayerController> {
       every { pauseIfCurrentBookDifferentFrom(book.id) } just Runs
@@ -763,12 +950,15 @@ class BookPlayViewModelTest {
       every { livePlaybackStateFlow(book.id) } returns livePlaybackFlow
     },
   ): BookPlayViewModel {
+    val resolver = mockk<CurrentBookResolver> {
+      coEvery { book(book.id) } returns book
+    }
     return BookPlayViewModel(
       bookRepository = mockk {
         coEvery { get(book.id) } returns book
         every { flow(book.id) } returns MutableStateFlow(book)
       },
-      currentBookResolver = currentBookResolver,
+      currentBookResolver = resolver,
       player = player,
       sleepTimer = sleepTimer,
       playStateManager = mockk {
@@ -796,6 +986,8 @@ private fun book(
   name: String = "TestBook",
   lastPlayedAtMillis: Long = 0L,
   addedAtMillis: Long = 0L,
+  positionInChapter: Long = 2.5.minutes.inWholeMilliseconds,
+  currentChapterIndex: Int = 1,
 ): Book {
   val chapters = listOf(
     chapter(),
@@ -805,12 +997,12 @@ private fun book(
     content = BookContent(
       author = UUID.randomUUID().toString(),
       name = name,
-      positionInChapter = 2.5.minutes.inWholeMilliseconds,
+      positionInChapter = positionInChapter,
       playbackSpeed = 1F,
       addedAt = Instant.ofEpochMilli(addedAtMillis),
       chapters = chapters.map { it.id },
       cover = null,
-      currentChapter = chapters[1].id,
+      currentChapter = chapters[currentChapterIndex].id,
       isActive = true,
       lastPlayedAt = Instant.ofEpochMilli(lastPlayedAtMillis),
       skipSilence = false,
