@@ -27,9 +27,9 @@ import voice.core.data.Book
 import voice.core.data.BookId
 import voice.core.data.Chapter
 import voice.core.data.ChapterId
+import voice.core.data.PlaybackMode
 import voice.core.data.durationMs
 import voice.core.data.markForPosition
-import voice.core.data.PlaybackMode
 import voice.core.data.repo.BookRepository
 import voice.core.data.repo.BookmarkRepo
 import voice.core.data.sleeptimer.SleepTimerPreference

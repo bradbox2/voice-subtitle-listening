@@ -1,10 +1,10 @@
-site_name: Voice
-site_description: "Voice is an open source audiobook player built for simplicity and accessibility. Listen to, organize, and enjoy your audiobooks effortlessly."
-site_author: Paul Woitaschek
-site_url: https://voice.woitaschek.de
+site_name: Voice Subtitle Listening Practice
+site_description: "A GPLv3 fork of Voice for subtitle-based listening practice, offline audiobook playback, and local SRT workflows."
+site_author: bradbox2
+site_url: https://bradbox2.github.io/voice-subtitle-listening/
 
-repo_url: https://github.com/VoiceAudiobook/Voice
-repo_name: "Voice on GitHub"
+repo_url: https://github.com/bradbox2/voice-subtitle-listening
+repo_name: "bradbox2/voice-subtitle-listening"
 
 nav:
   - Home: index.md
@@ -51,4 +51,4 @@ plugins:
         'privacy_policy.md': 'privacy-policy.md'
         'privacy.md': 'privacy-policy.md'
 
-copyright: <a href="https://woitaschek.de/impressum/">Impressum</a>
+copyright: <a href="https://github.com/bradbox2/voice-subtitle-listening">bradbox2/voice-subtitle-listening</a>
