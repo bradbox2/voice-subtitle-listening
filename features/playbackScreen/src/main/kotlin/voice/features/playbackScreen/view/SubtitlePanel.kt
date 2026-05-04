@@ -8,8 +8,9 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -29,6 +30,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import voice.features.playbackScreen.BookPlayViewState
+import kotlin.math.abs
 
 @Composable
 internal fun SubtitlePanel(
@@ -66,13 +68,14 @@ internal fun SubtitlePanel(
       ),
     contentPadding = PaddingValues(vertical = if (focused) 18.dp else 6.dp),
   ) {
-    items(
+    itemsIndexed(
       items = viewState.items,
-      key = { item -> item.starKey },
-    ) { item ->
+      key = { _, item -> item.starKey },
+    ) { index, item ->
       SubtitleRow(
         item = item,
         focused = focused,
+        focusDistance = viewState.activeIndex?.let { activeIndex -> abs(index - activeIndex) },
         onSubtitleClick = onSubtitleClick,
         onSubtitleStarClick = onSubtitleStarClick,
       )
@@ -84,30 +87,38 @@ internal fun SubtitlePanel(
 private fun SubtitleRow(
   item: BookPlayViewState.SubtitlePanelViewState.Item,
   focused: Boolean,
+  focusDistance: Int?,
   onSubtitleClick: (Long) -> Unit,
   onSubtitleStarClick: (String) -> Unit,
 ) {
-  val background = if (item.active) {
-    if (focused) {
-      MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.84F)
-    } else {
-      MaterialTheme.colorScheme.secondaryContainer
-    }
-  } else {
-    MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0F)
+  val focusedTextAlpha = when (focusDistance) {
+    0 -> 0.96F
+    1 -> 0.84F
+    2 -> 0.68F
+    else -> 0.42F
   }
-  val color = if (item.active) {
-    if (focused) {
-      MaterialTheme.colorScheme.onPrimaryContainer
-    } else {
-      MaterialTheme.colorScheme.onSecondaryContainer
-    }
-  } else {
-    if (focused) {
-      Color.White.copy(alpha = 0.68F)
-    } else {
-      MaterialTheme.colorScheme.onSurfaceVariant
-    }
+  val background = when {
+    focused && item.active -> MaterialTheme.colorScheme.primary.copy(alpha = 0.10F)
+    focused && item.selected -> MaterialTheme.colorScheme.secondary.copy(alpha = 0.10F)
+    !focused && item.active -> MaterialTheme.colorScheme.secondaryContainer
+    else -> MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0F)
+  }
+  val color = when {
+    focused -> Color.White.copy(alpha = focusedTextAlpha)
+    item.active -> MaterialTheme.colorScheme.onSecondaryContainer
+    else -> MaterialTheme.colorScheme.onSurfaceVariant
+  }
+  val textStyle = when {
+    focused && focusDistance == 0 -> MaterialTheme.typography.titleLarge
+    focused && focusDistance == 1 -> MaterialTheme.typography.titleMedium
+    focused && focusDistance == 2 -> MaterialTheme.typography.bodyLarge
+    focused -> MaterialTheme.typography.bodyMedium
+    else -> MaterialTheme.typography.bodyMedium
+  }
+  val fontWeight = when {
+    focused && focusDistance == 0 -> FontWeight.SemiBold
+    focused && focusDistance == 1 -> FontWeight.Medium
+    else -> FontWeight.Normal
   }
   Row(
     modifier = Modifier
@@ -118,14 +129,8 @@ private fun SubtitleRow(
     Text(
       text = item.text,
       color = color,
-      style = if (focused && item.active) {
-        MaterialTheme.typography.titleLarge
-      } else if (focused) {
-        MaterialTheme.typography.bodyLarge
-      } else {
-        MaterialTheme.typography.bodyMedium
-      },
-      fontWeight = if (focused && item.active) FontWeight.SemiBold else FontWeight.Normal,
+      style = textStyle,
+      fontWeight = fontWeight,
       textAlign = if (focused) TextAlign.Center else TextAlign.Start,
       modifier = Modifier
         .weight(1F)
@@ -137,7 +142,8 @@ private fun SubtitleRow(
           bottom = if (focused) 9.dp else 8.dp,
         ),
     )
-    if (item.active || item.starred) {
+    if (item.selected || item.starred) {
+      val quietStar = item.starred && !item.selected
       IconButton(
         onClick = { onSubtitleStarClick(item.starKey) },
         modifier = Modifier.padding(end = if (focused) 2.dp else 0.dp),
@@ -145,8 +151,9 @@ private fun SubtitleRow(
         Icon(
           imageVector = if (item.starred) Icons.Outlined.Star else Icons.Outlined.StarBorder,
           contentDescription = if (item.starred) "Unstar sentence" else "Star sentence",
+          modifier = Modifier.size(if (quietStar) 20.dp else 24.dp),
           tint = if (item.starred) {
-            Color(0xFFFFD54F)
+            Color(0xFFFFD54F).copy(alpha = if (quietStar) 0.70F else 1F)
           } else if (focused) {
             Color.White.copy(alpha = 0.54F)
           } else {

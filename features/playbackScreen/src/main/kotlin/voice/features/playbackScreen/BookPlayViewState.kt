@@ -44,6 +44,7 @@ data class BookPlayViewState(
       val starKey: String,
       val text: String,
       val active: Boolean,
+      val selected: Boolean,
       val starred: Boolean,
     )
   }

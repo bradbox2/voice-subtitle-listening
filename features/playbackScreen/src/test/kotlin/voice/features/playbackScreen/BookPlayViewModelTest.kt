@@ -415,6 +415,7 @@ class BookPlayViewModelTest {
             starKey = cues[0].subtitleCueKey(book.id, book.currentChapter.id),
             text = "Active sentence",
             active = true,
+            selected = false,
             starred = false,
           ),
           BookPlayViewState.SubtitlePanelViewState.Item(
@@ -422,10 +423,100 @@ class BookPlayViewModelTest {
             starKey = cues[1].subtitleCueKey(book.id, book.currentChapter.id),
             text = "Next sentence",
             active = false,
+            selected = false,
             starred = false,
           ),
         ),
       )
+    }
+  }
+
+  @Test
+  fun `subtitle panel marks tapped cue selected separately from active cue`() = scope.runTest {
+    val livePlaybackFlow = MutableStateFlow<LivePlaybackState?>(
+      LivePlaybackState(
+        bookId = book.id,
+        chapterId = book.currentChapter.id,
+        positionMs = 2.5.minutes.inWholeMilliseconds,
+        isPlaying = true,
+        playbackSpeed = 1F,
+      ),
+    )
+    val cues = listOf(
+      SubtitleCue(
+        startMs = 2.minutes.inWholeMilliseconds,
+        endMs = 3.minutes.inWholeMilliseconds,
+        text = "Active",
+      ),
+      SubtitleCue(
+        startMs = 4.minutes.inWholeMilliseconds,
+        endMs = 5.minutes.inWholeMilliseconds,
+        text = "Selected",
+      ),
+    )
+    val player = mockk<PlayerController> {
+      every { pauseIfCurrentBookDifferentFrom(book.id) } just Runs
+      every { livePlaybackStateFlow(book.id) } returns livePlaybackFlow
+      every { setPosition(any(), any()) } just Runs
+    }
+    val viewModel = viewModel(
+      experimentalPlaybackPersistence = true,
+      livePlaybackFlow = livePlaybackFlow,
+      player = player,
+      subtitleLoader = mockk {
+        every { loadForAudio(book.currentChapter.id.toUri()) } returns cues
+      },
+    )
+
+    backgroundScope.launchMolecule(RecompositionMode.Immediate) {
+      viewModel.viewState()
+    }.test {
+      awaitItem() shouldBe null
+      awaitStateWithSubtitles().subtitles!!.activeIndex shouldBe 0
+
+      viewModel.onSubtitleClick(4.minutes.inWholeMilliseconds)
+      val state = awaitStateWithSubtitles()
+
+      state.subtitles!!.activeIndex shouldBe 0
+      state.subtitles.items[0].active shouldBe true
+      state.subtitles.items[0].selected shouldBe false
+      state.subtitles.items[1].active shouldBe false
+      state.subtitles.items[1].selected shouldBe true
+      cancelAndIgnoreRemainingEvents()
+    }
+  }
+
+  @Test
+  fun `subtitle panel keeps starred cue starred when it is not selected`() = scope.runTest {
+    val cues = listOf(
+      SubtitleCue(
+        startMs = 2.minutes.inWholeMilliseconds,
+        endMs = 3.minutes.inWholeMilliseconds,
+        text = "Active",
+      ),
+      SubtitleCue(
+        startMs = 4.minutes.inWholeMilliseconds,
+        endMs = 5.minutes.inWholeMilliseconds,
+        text = "Starred",
+      ),
+    )
+    val starKey = cues[1].subtitleCueKey(book.id, book.currentChapter.id)
+    val viewModel = viewModel(
+      starredSubtitleCueKeysStore = MemoryDataStore(setOf(starKey)),
+      subtitleLoader = mockk {
+        every { loadForAudio(book.currentChapter.id.toUri()) } returns cues
+      },
+    )
+
+    backgroundScope.launchMolecule(RecompositionMode.Immediate) {
+      viewModel.viewState()
+    }.test {
+      awaitItem() shouldBe null
+      val state = awaitStateWithSubtitles()
+
+      state.subtitles!!.items[1].selected shouldBe false
+      state.subtitles.items[1].starred shouldBe true
+      cancelAndIgnoreRemainingEvents()
     }
   }
 

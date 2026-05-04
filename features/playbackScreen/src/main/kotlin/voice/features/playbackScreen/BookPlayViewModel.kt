@@ -237,6 +237,7 @@ class BookPlayViewModel(
       starredCueKeys = starredSubtitleCueKeys,
       bookId = book.id,
       chapterId = subtitleChapterId ?: book.currentChapter.id,
+      selectedCueStartMs = selectedSubtitleCueStartMs.value,
     )
     logSubtitleSync(
       playbackSpeed = currentSubtitlePlaybackSpeed,
@@ -567,6 +568,13 @@ class BookPlayViewModel(
     val activeCueIndex = cues.activeCueIndex(positionMs)
     val selectedCue = selectedSubtitleCueStartMs.value
       ?.let { selectedStartMs -> cues.firstOrNull { it.startMs == selectedStartMs } }
+
+    if (!repeatSentenceEnabled.value) {
+      loopSeekPendingForCueStartMs = null
+      resetRepeatLoopCrossingState()
+      return
+    }
+
     val effectiveCue = if (
       selectedCue != null &&
       positionMs >= (selectedCue.startMs - SUBTITLE_SEEK_PRE_ROLL_MS).coerceAtLeast(0) &&
@@ -579,7 +587,7 @@ class BookPlayViewModel(
 
     selectedSubtitleCueStartMs.value = effectiveCue?.startMs
 
-    if (!repeatSentenceEnabled.value || effectiveCue == null) {
+    if (effectiveCue == null) {
       loopSeekPendingForCueStartMs = null
       resetRepeatLoopCrossingState()
       return
@@ -643,6 +651,7 @@ private fun List<SubtitleCue>.toSubtitlePanelViewState(
   starredCueKeys: Set<String>,
   bookId: BookId,
   chapterId: ChapterId,
+  selectedCueStartMs: Long?,
 ): BookPlayViewState.SubtitlePanelViewState? {
   if (isEmpty()) return null
 
@@ -665,6 +674,7 @@ private fun List<SubtitleCue>.toSubtitlePanelViewState(
         starKey = key,
         text = cue.text,
         active = index == activeIndex,
+        selected = cue.startMs == selectedCueStartMs,
         starred = key in starredCueKeys,
       )
     },
