@@ -80,6 +80,8 @@ android {
     }
     getByName("debug") {
       isMinifyEnabled = false
+      // the subtitle fork was installed as a debug build, so updates keep its library
+      applicationIdSuffix = ".debug"
     }
     all {
       if (appSigningConfig != null) {
