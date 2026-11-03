@@ -2,6 +2,8 @@
 
 Voice is a modular Android audiobook player.
 
+This is the subtitle listening practice fork. Before syncing upstream, updating media3 or touching playback, read [FORK.md](FORK.md).
+
 - Build the app: `./gradlew :app:assembleFreeDebug`.
 - If installing a debug build fails with `INSTALL_FAILED_UPDATE_INCOMPATIBLE`, the installed app was signed with a different key. Never uninstall it to get around this, as that wipes the user's library. Ask the user instead.
 - Only write code comments when absolutely necessary, to explain a non-obvious *why*. Don't restate what the code does or describe the change you made. This includes KDoc.

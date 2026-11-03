@@ -1,0 +1,68 @@
+# 字幕听力练习 fork：维护须知
+
+本仓库是 [PaulWoitaschek/Voice](https://github.com/PaulWoitaschek/Voice) 的 fork，加了字幕听力练习功能。
+**每次同步上游、升级依赖（尤其是 media3）之前，先读完这份文件。**
+
+## 一、防漂移措施（字幕与音频对不上）
+
+漂移的根源：seek 落点 ≠ 播放器报告的位置。连续播放（任何倍速）本身不漂，
+每次 seek（暂停自动回退、点字幕、单句循环跳回、启动恢复进度）都会重新引入一次误差。
+
+| # | 措施 | 位置 | 升级时要做什么 |
+|---|---|---|---|
+| 1 | **本地 MP3 一律逐帧索引 seek**。media3 的 `FLAG_ENABLE_INDEX_SEEKING` 只在文件没有 VBR 目录时才生效，对带 Xing/VBRI 目录或无头 VBR 的文件无效（实测 25 分钟文件误差达 3.4 s）。所以复制了 media3 的 `Mp3Extractor` 改名 `LocalMp3Extractor`，只改一行：有 index 标志就无条件用 `IndexSeeker` | `core/playback/impl/src/main/java/androidx/media3/extractor/mp3/LocalMp3Extractor.java` | **升级 media3 必做**：从新版本 `media3-extractor-<版本>-sources.jar` 重新复制 `Mp3Extractor.java`，改名、改 `computeSeeker` 里那一行（去掉 `&& !resultSeeker.isSeekable()`），再更新测试里的版本号。版本守卫测试会在升级后失败提醒你 |
+| 2 | 只对本地文件（`file`/`content`）用 #1；Audiobookshelf 等流媒体不用（索引 seek 要从头读到目标） | `core/playback/impl/.../player/LocalIndexSeekingExtractorsFactory.kt`，在 `PlaybackModule.mediaSourceFactory` 里接入 | 上游若改 `mediaSourceFactory`，确认仍然用这个工厂 |
+| 3 | **单句循环在播放器里用 `PlayerMessage` 实现**，在句尾精确跳回，不靠 250 ms 轮询（轮询在 1.25x 会冲进下一句约 300 ms） | `ChapterMarkPlayer.setLoopRange/clearLoopRange` | 上游若重写 `ChapterMarkPlayer`，把这两个方法搬过去 |
+| 4 | 字幕页按暂停 = **不自动回退**（避免一次 seek） | `VoicePlayer.pauseWithoutRewind`、`BookPlayViewModel.playPause` | 上游若改自动回退逻辑（`autoRewindListener`），保留 `skipNextAutoRewind` |
+| 5 | 字幕位置**始终**用播放器实时位置 `livePlaybackStateFlow`，不用数据库里定时写入的位置（上游只在实验开关打开时才用实时位置） | `BookPlayViewModel.viewState` 里的 `playerState` | 上游若改这段，确认字幕仍然拿实时位置 |
+| 6 | 按章节手动微调 offset（±0.1 s，存 DataStore），只能修正字幕文件本身的固定偏差，修不了 seek 误差 | `features/playbackScreen/.../subtitle/` | — |
+
+已知仍会造成偏差、但不是 bug 的情况：
+- **Skip silence 打开时**，ExoPlayer 处理完静音段就把它计入位置，字幕会提前高亮。上游行为，练习时建议关闭。
+- 字幕文件时间轴本身和音频不一致（例如按不同版本音频做的字幕）：用 offset 微调；若是线性漂移（越往后差越多），目前不支持。
+
+### 回归测试（改动播放相关代码后必须通过）
+
+```bash
+./gradlew :core:playback:impl:testDebugUnitTest
+```
+
+- `LocalMp3ExtractorTest`：版本守卫 + 用 `src/test/resources/vbr_xing.mp3`（4 分钟 VBR+Xing，ffmpeg libmp3lame 生成）验证 seek 误差为 0，并验证原版 `Mp3Extractor` 在同一文件上确实有误差（证明测试有效）。
+- `ChapterMarkPlayerTest`：循环区间、播放模式。
+- `VoicePlayerTest`：暂停不回退、"本章结束"定时器遇到单句循环在句尾暂停。
+
+想在真实文件上测误差：参考 `LocalMp3ExtractorTest.seekError`，把文件换成要测的 MP3。
+
+## 二、不能随便改的东西（改了用户数据会丢）
+
+| 内容 | 存储 | 说明 |
+|---|---|---|
+| 星标 | DataStore 文件 `starredSubtitleCueKeys`，key 由 `SubtitleKeys.starKey` 生成（书 id、章节 id、文本的 SHA-256 前 8 字节） | 改算法 = 所有星标失效。`SubtitleKeysTest` 锁定了格式 |
+| 每章 offset | DataStore 文件 `subtitleOffsets`，key 由 `subtitleOffsetKey` 生成 | 同上 |
+| 字幕专注模式 | DataStore 文件 `subtitleFocusModeEnabled` | — |
+| 播放模式 | DataStore 文件 `playbackMode`，枚举名 `Sequential/SingleTrackLoop/Shuffle/FolderLoop` | 枚举名不能改 |
+| 包名 | debug 构建 `de.ph1b.audiobook.debug`（`app/build.gradle.kts` 里的 `applicationIdSuffix`） | 手机上装的就是这个包名，改了就变成另一个 App，书库不会带过去 |
+
+## 三、fork 新增的其他功能（同步上游时注意冲突）
+
+- `core:subtitle` 模块：`.srt` 解析（UTF-8 / GB18030、BOM、`.` 或 `,` 毫秒）、同文件夹查找（扩展名大小写不敏感）。日志不记录路径、文件名、字幕文本（上游 AGENTS.md 要求）。
+- 字幕页 `view/SubtitleContent.kt`：底部 `[播放模式] ↶ ▶ ↷ [工具]`，工具行（单句循环 / 倍速 / Sync）默认收起；播放时保持亮屏。
+- 播放模式作用在**文件**上（直接设在被包装的 ExoPlayer 上），`ChapterMarkPlayer` 对上层报告不循环、不随机，避免上一章/下一章逻辑出错。
+- "本章结束"定时器 + 单句循环：句尾即视为章末，暂停。
+
+## 四、同步上游的方法
+
+本 fork 最早是上游 `2269db925` 的压缩快照，后来在上游 `4ef7fa716`（2026-11-02）之上重新移植为分支 `subtitle-on-upstream`，现在和上游**有共同历史**，可以直接：
+
+```bash
+git fetch upstream
+git merge upstream/main   # 或 rebase
+./gradlew spotlessApply :core:subtitle:testDebugUnitTest :core:playback:impl:testDebugUnitTest :features:playbackScreen:testDebugUnitTest :app:assembleFreeDebug
+```
+
+合并后对照第一节逐条检查，再装到手机上实测：长文件拖到后段，暂停/点字幕/单句循环，听高亮是否对得上。
+
+## 五、本机环境备忘（Windows）
+
+- 这些上游测试在 Windows 上失败，与 fork 无关（Room 测试数据库路径、`File.toUri()` 差异）：`core:data:impl` 的 `Migration*Test`、`DataBaseMigratorTest`、`ConvertersTest`、`CustomMetadataRepoImplTest`；`core:scanner` 的 `MediaScannerTest` 中三个改名相关用例。在 Linux CI 上应通过。
+- 装机：`adb install -r app/build/outputs/apk/free/debug/app-free-debug.apk`。签名用本机 `~/.android/debug.keystore`。**签名不一致时不要卸载旧版**（会清空书库），先想办法。
