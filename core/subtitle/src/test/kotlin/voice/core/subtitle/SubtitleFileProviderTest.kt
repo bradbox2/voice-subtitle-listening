@@ -59,7 +59,7 @@ class SubtitleFileProviderTest {
     val uri =
       Uri.parse(
         "content://com.android.externalstorage.documents/tree/primary%3ABooks/document/" +
-          "primary%3ABooks%2FA%2Fone.mp3"
+          "primary%3ABooks%2FA%2Fone.mp3",
       )
 
     assertEquals(
@@ -72,9 +72,12 @@ class SubtitleFileProviderTest {
   fun `a saf document in the root of a volume`() {
     val uri =
       Uri.parse(
-        "content://com.android.externalstorage.documents/tree/primary%3A/document/primary%3Aone.mp3"
+        "content://com.android.externalstorage.documents/tree/primary%3A/document/primary%3Aone.mp3",
       )
 
-    assertEquals(SafDocument(parentDocumentId = "primary:", displayName = "one.mp3"), uri.toSafDocument())
+    assertEquals(
+      SafDocument(parentDocumentId = "primary:", displayName = "one.mp3"),
+      uri.toSafDocument(),
+    )
   }
 }

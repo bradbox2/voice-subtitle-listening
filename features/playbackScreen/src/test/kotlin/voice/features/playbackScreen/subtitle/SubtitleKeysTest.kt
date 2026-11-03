@@ -13,7 +13,7 @@ class SubtitleKeysTest {
   private val bookId = BookId("book-1")
   private val chapterId =
     ChapterId(
-      "content://com.android.externalstorage.documents/document/primary%3ASample%2Flesson01.mp3"
+      "content://com.android.externalstorage.documents/document/primary%3ASample%2Flesson01.mp3",
     )
 
   @Test

@@ -163,6 +163,7 @@ dependencies {
   implementation(projects.features.folderPicker)
   implementation(projects.features.bookOverview)
   implementation(projects.core.search)
+  implementation(projects.core.subtitle)
   implementation(projects.features.cover)
   implementation(projects.core.documentfile)
   implementation(projects.features.onboarding)

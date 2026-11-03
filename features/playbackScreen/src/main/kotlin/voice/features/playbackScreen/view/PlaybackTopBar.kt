@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.FilledTonalIconButton
+import androidx.compose.material3.FilledTonalIconToggleButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButtonColors
 import androidx.compose.material3.IconButtonDefaults
@@ -29,6 +30,8 @@ import voice.core.ui.icons.VoiceIcons
 @Composable
 internal fun PlaybackTopBar(
   showChapters: Boolean,
+  subtitlesShown: Boolean?,
+  onSubtitlesClick: () -> Unit,
   onCloseClick: () -> Unit,
   onChaptersClick: () -> Unit,
   onBookActionsClick: () -> Unit,
@@ -46,6 +49,18 @@ internal fun PlaybackTopBar(
   ) {
     CloseButton(onClick = onCloseClick)
     Spacer(Modifier.weight(1F))
+    if (subtitlesShown != null) {
+      FilledTonalIconToggleButton(
+        checked = subtitlesShown,
+        onCheckedChange = { onSubtitlesClick() },
+        shapes = IconButtonDefaults.toggleableShapes(),
+      ) {
+        Icon(
+          imageVector = VoiceIcons.FormatQuote,
+          contentDescription = stringResource(R.string.playback_subtitles_toggle),
+        )
+      }
+    }
     if (showChapters) {
       ChaptersButton(onClick = onChaptersClick)
     }

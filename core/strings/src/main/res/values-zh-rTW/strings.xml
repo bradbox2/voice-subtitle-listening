@@ -467,4 +467,16 @@
     <string name="widget.shelf.play">播放《%1$s》</string>
     <string name="widget.shelf.title">繼續收聽</string>
     <string name="widget.sleep_timer.stops_at">將於 %1$s 停止</string>
+    <string name="playback.subtitles.toggle">字幕</string>
+    <string name="playback.subtitles.tools">練習工具</string>
+    <string name="playback.subtitles.repeat">單句循環</string>
+    <string name="playback.subtitles.star">收藏句子</string>
+    <string name="playback.subtitles.unstar">取消收藏</string>
+    <string name="playback.subtitles.sync_earlier">字幕提前</string>
+    <string name="playback.subtitles.sync_later">字幕延後</string>
+    <string name="playback.subtitles.sync">同步 %1$s</string>
+    <string name="playback.mode.sequential">順序</string>
+    <string name="playback.mode.single_track_loop">單曲</string>
+    <string name="playback.mode.shuffle">隨機</string>
+    <string name="playback.mode.folder_loop">全部</string>
 </resources>

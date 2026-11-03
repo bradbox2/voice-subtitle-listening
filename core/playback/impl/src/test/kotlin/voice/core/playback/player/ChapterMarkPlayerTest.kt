@@ -22,6 +22,7 @@ import voice.core.data.Book
 import voice.core.data.Chapter
 import voice.core.data.ChapterId
 import voice.core.data.MarkData
+import voice.core.playback.PlaybackMode
 import voice.core.playback.session.MediaItemProvider
 import voice.core.playback.session.realChapterId
 import voice.core.playback.session.search.book
@@ -248,7 +249,7 @@ class ChapterMarkPlayerTest {
   fun `a loop range jumps back to its start every time playback reaches its end`() {
     setBook(listOf(singleFileWithThreeMarks()))
     player.seekTo(0, 3_000)
-    player.setLoopRange(book.chapters.single().id, startMs = 2_000, endMs = 4_000)
+    player.setLoopRange(book.chapters.single().id, startMs = 2_000, endMs = 4_000) { true }
 
     exoPlayer.play()
     repeat(2) {
@@ -260,7 +261,7 @@ class ChapterMarkPlayerTest {
   @Test
   fun `playback continues past a cleared loop range`() {
     setBook(listOf(singleFileWithThreeMarks()))
-    player.setLoopRange(book.chapters.single().id, startMs = 0, endMs = 1_000)
+    player.setLoopRange(book.chapters.single().id, startMs = 0, endMs = 1_000) { true }
     player.clearLoopRange()
 
     TestPlayerRunHelper.play(exoPlayer).untilPositionAtLeast(0, 2_000)
@@ -271,8 +272,39 @@ class ChapterMarkPlayerTest {
   @Test
   fun `a new book clears the loop range`() {
     setBook(listOf(singleFileWithThreeMarks()))
-    player.setLoopRange(book.chapters.single().id, startMs = 0, endMs = 1_000)
+    player.setLoopRange(book.chapters.single().id, startMs = 0, endMs = 1_000) { true }
     setBook(listOf(singleFileWithThreeMarks()))
+
+    TestPlayerRunHelper.play(exoPlayer).untilPositionAtLeast(0, 2_000)
+
+    assertTrue(exoPlayer.currentPosition >= 2_000)
+  }
+
+  @Test
+  fun `playback modes repeat and shuffle the files, while the chapters show neither`() {
+    setBook(listOf(singleFileWithThreeMarks()))
+
+    player.setPlaybackMode(PlaybackMode.SingleTrackLoop)
+    assertEquals(expected = Player.REPEAT_MODE_ONE, actual = exoPlayer.repeatMode)
+    assertEquals(expected = Player.REPEAT_MODE_OFF, actual = player.repeatMode)
+
+    player.setPlaybackMode(PlaybackMode.Shuffle)
+    assertTrue(exoPlayer.shuffleModeEnabled)
+    assertEquals(expected = Player.REPEAT_MODE_OFF, actual = exoPlayer.repeatMode)
+    assertFalse(player.shuffleModeEnabled)
+
+    player.setPlaybackMode(PlaybackMode.FolderLoop)
+    assertEquals(expected = Player.REPEAT_MODE_ALL, actual = exoPlayer.repeatMode)
+    assertFalse(exoPlayer.shuffleModeEnabled)
+
+    player.setPlaybackMode(PlaybackMode.Sequential)
+    assertEquals(expected = Player.REPEAT_MODE_OFF, actual = exoPlayer.repeatMode)
+  }
+
+  @Test
+  fun `a loop range does not jump back when its end is handled otherwise`() {
+    setBook(listOf(singleFileWithThreeMarks()))
+    player.setLoopRange(book.chapters.single().id, startMs = 0, endMs = 1_000) { false }
 
     TestPlayerRunHelper.play(exoPlayer).untilPositionAtLeast(0, 2_000)
 

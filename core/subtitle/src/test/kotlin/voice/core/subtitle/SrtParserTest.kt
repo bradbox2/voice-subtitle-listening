@@ -21,7 +21,7 @@ class SrtParserTest {
         Second
         line
         """
-          .trimIndent()
+          .trimIndent(),
       )
 
     assertEquals(
@@ -68,7 +68,7 @@ class SrtParserTest {
         00:00:06,000 --> 00:00:07,000
         Fine
         """
-          .trimIndent()
+          .trimIndent(),
       )
 
     assertEquals(listOf(SubtitleCue(startMs = 6_000, endMs = 7_000, text = "Fine")), cues)
@@ -76,7 +76,8 @@ class SrtParserTest {
 
   @Test
   fun `sorts cues by their start`() {
-    val cues = parser.parse("1\n00:00:05,000 --> 00:00:06,000\nB\n\n2\n00:00:01,000 --> 00:00:02,000\nA")
+    val cues =
+      parser.parse("1\n00:00:05,000 --> 00:00:06,000\nB\n\n2\n00:00:01,000 --> 00:00:02,000\nA")
 
     assertEquals(listOf("A", "B"), cues.map { it.text })
   }

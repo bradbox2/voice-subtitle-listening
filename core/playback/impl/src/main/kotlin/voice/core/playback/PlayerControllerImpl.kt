@@ -256,6 +256,12 @@ class PlayerControllerImpl(
     }
   }
 
+  override fun setPlaybackMode(mode: PlaybackMode) {
+    scope.launch {
+      awaitConnect()?.sendCustomCommand(CustomCommand.SetPlaybackMode(mode))
+    }
+  }
+
   override fun setSpeed(speed: Float) = executeAfterPrepare { controller ->
     controller.setPlaybackSpeed(speed)
   }

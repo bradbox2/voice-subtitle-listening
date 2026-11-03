@@ -20,6 +20,7 @@ import voice.core.strings.R as StringsR
 import voice.core.ui.CoverTheme
 import voice.core.ui.HoldSplashScreenWhile
 import voice.features.playbackScreen.view.BookPlayView
+import voice.features.playbackScreen.view.SubtitleActions
 import voice.navigation.Destination
 import voice.navigation.NavEntryProvider
 
@@ -89,6 +90,20 @@ fun BookPlayScreen(bookId: BookId) {
       onCurrentChapterClick = viewModel::onCurrentChapterClick,
       onJumpBack = viewModel::onJumpBackClick,
       onJumpBackExpire = viewModel::onJumpBackExpire,
+      subtitleActions =
+        remember(viewModel) {
+          val subtitles = viewModel.subtitles
+          SubtitleActions(
+            onCueClick = subtitles::onCueClick,
+            onStarClick = subtitles::onStarClick,
+            onRepeatClick = subtitles::toggleRepeatSentence,
+            onPlaybackModeClick = subtitles::cyclePlaybackMode,
+            onFocusModeClick = subtitles::toggleFocusMode,
+            onSpeedClick = subtitles::onSpeedClick,
+            onOffsetChange = subtitles::onOffsetChange,
+            onOffsetReset = subtitles::onOffsetReset,
+          )
+        },
       snackbarHostState = snackbarHostState,
     )
     when (dialogState) {

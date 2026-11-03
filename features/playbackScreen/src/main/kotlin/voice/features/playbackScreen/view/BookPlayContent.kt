@@ -371,6 +371,6 @@ private fun TitleBlock(
  * to right, so the timelines, chapter controls and transport controls stay in that order.
  */
 @Composable
-private fun MediaControlsDirection(content: @Composable () -> Unit) {
+internal fun MediaControlsDirection(content: @Composable () -> Unit) {
   CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr, content = content)
 }

@@ -50,6 +50,8 @@ import voice.core.data.store.CurrentBookStore
 import voice.core.playback.AutoRewindAmountStore
 import voice.core.playback.LastPlaybackSpeedStore
 import voice.core.playback.MemoryDataStore
+import voice.core.playback.PlaybackMode
+import voice.core.playback.PlaybackModeStore
 import voice.core.playback.SeekTimeStore
 import voice.core.playback.history.CommandSourceResolver
 import voice.core.playback.history.ListeningHistoryRecorder
@@ -128,6 +130,7 @@ class VoicePlayerTest {
       seekTimeStore = SeekTimeStore(seekTimeStore),
       autoRewindAmountStore = AutoRewindAmountStore(autoRewindAmountStore),
       lastPlaybackSpeedStore = LastPlaybackSpeedStore(lastPlaybackSpeedStore),
+      playbackModeStore = PlaybackModeStore(MemoryDataStore(PlaybackMode.Sequential)),
       scope = scope,
       volumeGain = VolumeGain(VolumeGainSetter()),
       sleepTimer = sleepTimer,
@@ -748,6 +751,24 @@ class VoicePlayerTest {
     val pausedAt = player.currentPosition
 
     player.shouldHavePosition(0, pausedAt - 5_000)
+  }
+
+  @Test
+  fun `end of chapter sleep timer pauses at the end of a looped sentence`() = scope.runTest {
+    setMediaItems(listOf(chapter(ChapterMark(startMs = 0, endMs = 10_000, name = null))))
+    player.seekTo(0, 1_000)
+    player.prepare()
+    awaitReady()
+    player.setLoopRange(currentBook.chapters.single().id, startMs = 1_000, endMs = 3_000)
+    sleepTimer.enable(SleepTimerMode.EndOfChapter)
+
+    TestPlayerRunHelper.play(internalPlayer).untilPlayWhenReadyIs(false)
+
+    assertEquals(expected = SleepTimerState.Disabled, actual = sleepTimer.state.value)
+    assertTrue(
+      internalPlayer.currentPosition in 900L..3_100L,
+      "at ${internalPlayer.currentPosition}",
+    )
   }
 
   private fun TestScope.setMediaItems(

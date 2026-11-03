@@ -23,6 +23,8 @@ import voice.core.data.store.CurrentBookStore
 import voice.core.logging.api.Logger
 import voice.core.playback.AutoRewindAmountStore
 import voice.core.playback.LastPlaybackSpeedStore
+import voice.core.playback.PlaybackMode
+import voice.core.playback.PlaybackModeStore
 import voice.core.playback.SeekTimeStore
 import voice.core.playback.di.PlaybackScope
 import voice.core.playback.history.CommandSource
@@ -50,6 +52,7 @@ class VoicePlayer(
   private val seekTimeStore: SeekTimeStore,
   private val autoRewindAmountStore: AutoRewindAmountStore,
   private val lastPlaybackSpeedStore: LastPlaybackSpeedStore,
+  private val playbackModeStore: PlaybackModeStore,
   private val scope: CoroutineScope,
   private val volumeGain: VolumeGain,
   private val sleepTimer: SleepTimer,
@@ -85,20 +88,23 @@ class VoicePlayer(
           pauseAndDisableSleepTimerIfEndOfChapter()
         }
       }
-
-      private fun pauseAndDisableSleepTimerIfEndOfChapter() {
-        if (sleepTimer.state.value !is SleepTimerState.Enabled.WithEndOfChapter) return
-        sleepTimer.disable()
-        player.pause()
-        player.playbackPosition()?.let { position ->
-          historyRecorder.record(
-            type = ListeningEvent.Type.SleepTimerEnded,
-            source = ListeningEvent.Source.SleepTimer,
-            position = position,
-          )
-        }
-      }
     }
+
+  /** Returns whether it paused. */
+  @IgnorableReturnValue
+  private fun pauseAndDisableSleepTimerIfEndOfChapter(): Boolean {
+    if (sleepTimer.state.value !is SleepTimerState.Enabled.WithEndOfChapter) return false
+    sleepTimer.disable()
+    player.pause()
+    player.playbackPosition()?.let { position ->
+      historyRecorder.record(
+        type = ListeningEvent.Type.SleepTimerEnded,
+        source = ListeningEvent.Source.SleepTimer,
+        position = position,
+      )
+    }
+    return true
+  }
 
   /**
    * Rewinds when playback actually paused, so a pause command while already paused doesn't rewind
@@ -314,11 +320,17 @@ class VoicePlayer(
     startMs: Long,
     endMs: Long,
   ) {
-    player.setLoopRange(chapterId, startMs, endMs)
+    // a looped sentence never reaches the end of the chapter, so its end counts as that
+    player.setLoopRange(chapterId, startMs, endMs) { !pauseAndDisableSleepTimerIfEndOfChapter() }
   }
 
   fun clearLoopRange() {
     player.clearLoopRange()
+  }
+
+  fun setPlaybackMode(mode: PlaybackMode) {
+    scope.launch { playbackModeStore.updateData { mode } }
+    player.setPlaybackMode(mode)
   }
 
   private fun updateLastPlayedAt() {
@@ -398,6 +410,7 @@ class VoicePlayer(
               chapterId = book.content.currentChapter,
               positionInChapterMs = book.content.positionInChapter,
             ) ?: return
+          player.setPlaybackMode(runBlocking { playbackModeStore.data.first() })
           player.setBook(
             book = book,
             startItemIndex = currentPlaybackItem.index,

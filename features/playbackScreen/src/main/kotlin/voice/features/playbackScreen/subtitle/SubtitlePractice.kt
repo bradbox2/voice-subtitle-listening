@@ -14,6 +14,8 @@ import voice.core.common.DispatcherProvider
 import voice.core.common.MainScope
 import voice.core.data.BookId
 import voice.core.data.ChapterId
+import voice.core.playback.PlaybackMode
+import voice.core.playback.PlaybackModeStore
 import voice.core.playback.PlayerController
 import voice.core.subtitle.SubtitleCue
 import voice.core.subtitle.SubtitleLoader
@@ -31,6 +33,7 @@ class SubtitlePractice(
   private val focusModeStore: SubtitleFocusModeStore,
   private val starredCuesStore: StarredSubtitleCuesStore,
   private val offsetsStore: SubtitleOffsetsStore,
+  private val playbackModeStore: PlaybackModeStore,
 ) {
 
   private val scope = MainScope(dispatcherProvider)
@@ -76,6 +79,11 @@ class SubtitlePractice(
     if (cues.isEmpty()) return null
 
     val focusMode = remember { focusModeStore.data }.collectAsState(initial = true).value
+    val playbackMode = remember {
+      playbackModeStore.data
+    }
+      .collectAsState(initial = PlaybackMode.Sequential)
+      .value
     val starred = remember { starredCuesStore.data }.collectAsState(initial = emptySet()).value
     val cueViewStates =
       remember(cues, starred, bookId, chapterId) {
@@ -93,10 +101,12 @@ class SubtitlePractice(
     return SubtitlesViewState(
       focusMode = focusMode,
       repeatSentence = repeat,
+      playbackMode = playbackMode,
       cues = cueViewStates,
       activeIndex = cues.activeCueIndex(subtitleTimeMs),
       selectedIndex =
-        selectedStartMs?.let { start -> cues.indexOfFirst { it.startMs == start } }
+        selectedStartMs
+          ?.let { start -> cues.indexOfFirst { it.startMs == start } }
           ?.takeIf { it >= 0 },
       offsetMs = offsetMs,
       speedOptions =
@@ -135,13 +145,29 @@ class SubtitlePractice(
     repeatSentence.value = !repeatSentence.value
   }
 
+  fun cyclePlaybackMode() {
+    scope.launch {
+      val next =
+        when (playbackModeStore.data.first()) {
+          PlaybackMode.Sequential -> PlaybackMode.SingleTrackLoop
+          PlaybackMode.SingleTrackLoop -> PlaybackMode.Shuffle
+          PlaybackMode.Shuffle -> PlaybackMode.FolderLoop
+          PlaybackMode.FolderLoop -> PlaybackMode.Sequential
+        }
+      playbackModeStore.updateData { next }
+      player.setPlaybackMode(next)
+    }
+  }
+
   fun toggleFocusMode() {
     scope.launch { focusModeStore.updateData { !it } }
   }
 
   fun onStarClick(starKey: String) {
     scope.launch {
-      starredCuesStore.updateData { keys -> if (starKey in keys) keys - starKey else keys + starKey }
+      starredCuesStore.updateData { keys ->
+        if (starKey in keys) keys - starKey else keys + starKey
+      }
     }
   }
 

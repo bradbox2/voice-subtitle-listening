@@ -302,6 +302,9 @@ class LibrarySessionCallback(
       CustomCommand.ClearLoopRange -> {
         player.clearLoopRange()
       }
+      is CustomCommand.SetPlaybackMode -> {
+        player.setPlaybackMode(command.mode)
+      }
     }
 
     return Futures.immediateFuture(SessionResult(SessionResult.RESULT_SUCCESS))

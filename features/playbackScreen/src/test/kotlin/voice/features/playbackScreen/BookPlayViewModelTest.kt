@@ -58,12 +58,12 @@ import voice.core.playback.history.PlaybackPosition
 import voice.core.playback.overlay
 import voice.core.playback.playstate.PlayStateManager
 import voice.core.sleeptimer.SleepTimer
-import voice.features.playbackScreen.subtitle.noSubtitles
 import voice.core.sleeptimer.SleepTimerMode
 import voice.core.sleeptimer.SleepTimerMode.TimedWithDuration
 import voice.core.sleeptimer.SleepTimerPreference
 import voice.core.sleeptimer.SleepTimerPreferenceStore
 import voice.core.sleeptimer.SleepTimerState
+import voice.features.playbackScreen.subtitle.noSubtitles
 
 class BookPlayViewModelTest {
 

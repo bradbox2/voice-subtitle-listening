@@ -1,11 +1,13 @@
 package voice.features.playbackScreen.subtitle
 
 import androidx.compose.runtime.Immutable
+import voice.core.playback.PlaybackMode
 
 @Immutable
 data class SubtitlesViewState(
   val focusMode: Boolean,
   val repeatSentence: Boolean,
+  val playbackMode: PlaybackMode,
   val cues: List<Cue>,
   val activeIndex: Int?,
   val selectedIndex: Int?,

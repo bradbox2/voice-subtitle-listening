@@ -16,6 +16,7 @@ import voice.core.data.ChapterId
 import voice.core.data.ChapterMark
 import voice.core.data.durationMs
 import voice.core.logging.api.Logger
+import voice.core.playback.PlaybackMode
 import voice.core.playback.di.PlaybackScope
 import voice.core.playback.session.ChapterMarkPlaylist
 import voice.core.playback.session.MediaItemProvider
@@ -135,13 +136,15 @@ class ChapterMarkPlayer(
     chapterId: ChapterId,
     startMs: Long,
     endMs: Long,
+    onEnd: () -> Boolean,
   ) {
     clearLoopRange()
-    val fileIndex = book?.chapters?.indexOfFirst { it.id == chapterId }?.takeIf { it >= 0 } ?: return
+    val fileIndex =
+      book?.chapters?.indexOfFirst { it.id == chapterId }?.takeIf { it >= 0 } ?: return
     if (endMs <= startMs) return
     loopMessage =
       player
-        .createMessage { _, _ -> player.seekTo(fileIndex, startMs) }
+        .createMessage { _, _ -> if (onEnd()) player.seekTo(fileIndex, startMs) }
         .setPosition(fileIndex, endMs)
         .setDeleteAfterDelivery(false)
         .setLooper(player.applicationLooper)
@@ -151,6 +154,21 @@ class ChapterMarkPlayer(
   fun clearLoopRange() {
     loopMessage?.cancel()
     loopMessage = null
+  }
+
+  /**
+   * Set on the wrapped player, so repeat and shuffle apply to whole files, which is what listeners
+   * practicing with one file per lesson mean.
+   */
+  fun setPlaybackMode(mode: PlaybackMode) {
+    player.repeatMode =
+      when (mode) {
+        PlaybackMode.SingleTrackLoop -> REPEAT_MODE_ONE
+        PlaybackMode.FolderLoop -> REPEAT_MODE_ALL
+        PlaybackMode.Sequential,
+        PlaybackMode.Shuffle -> REPEAT_MODE_OFF
+      }
+    player.shuffleModeEnabled = mode == PlaybackMode.Shuffle
   }
 
   /**
@@ -248,7 +266,11 @@ class ChapterMarkPlayer(
         COMMAND_SEEK_TO_NEXT,
       )
     }
-    return buildUpon().setAvailableCommands(commands.build()).build()
+    return buildUpon()
+      .setAvailableCommands(commands.build())
+      .setRepeatMode(REPEAT_MODE_OFF)
+      .setShuffleModeEnabled(false)
+      .build()
   }
 
   private fun State.isSeekDiscontinuity(): Boolean {

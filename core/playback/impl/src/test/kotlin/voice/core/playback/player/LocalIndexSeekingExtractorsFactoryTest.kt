@@ -26,7 +26,7 @@ class LocalIndexSeekingExtractorsFactoryTest {
     assertSame(
       localExtractor,
       factory.extractorFor(
-        "content://com.android.externalstorage.documents/tree/primary%3ABooks/document/primary%3ABooks%2Fone.mp3"
+        "content://com.android.externalstorage.documents/tree/primary%3ABooks/document/primary%3ABooks%2Fone.mp3",
       ),
     )
   }

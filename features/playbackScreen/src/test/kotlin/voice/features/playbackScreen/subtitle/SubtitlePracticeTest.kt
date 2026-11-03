@@ -22,6 +22,8 @@ import kotlinx.coroutines.test.runTest
 import voice.core.common.DispatcherProvider
 import voice.core.data.BookId
 import voice.core.data.ChapterId
+import voice.core.playback.PlaybackMode
+import voice.core.playback.PlaybackModeStore
 import voice.core.playback.PlayerController
 import voice.core.subtitle.SubtitleCue
 import voice.core.subtitle.SubtitleLoader
@@ -49,45 +51,42 @@ class SubtitlePracticeTest {
   private val practice = subtitlePractice(cues)
 
   @Test
-  fun `no subtitles without cues`() =
-    scope.runTest {
-      val practice = subtitlePractice(emptyList())
-      backgroundScope
-        .launchMolecule(RecompositionMode.Immediate) {
-          practice.viewState(bookId, chapterId, positionMs = 0, playbackSpeed = 1F)
-        }
-        .test {
-          assertNull(awaitItem())
-          expectNoEvents()
-        }
-    }
+  fun `no subtitles without cues`() = scope.runTest {
+    val practice = subtitlePractice(emptyList())
+    backgroundScope
+      .launchMolecule(RecompositionMode.Immediate) {
+        practice.viewState(bookId, chapterId, positionMs = 0, playbackSpeed = 1F)
+      }
+      .test {
+        assertNull(awaitItem())
+        expectNoEvents()
+      }
+  }
 
   @Test
-  fun `highlights the cue playing, shifted by the offset`() =
-    scope.runTest {
-      offsets.updateData { mapOf(subtitleOffsetKey(bookId, chapterId) to 1_000L) }
-      position.value = 2_500
+  fun `highlights the cue playing, shifted by the offset`() = scope.runTest {
+    offsets.updateData { mapOf(subtitleOffsetKey(bookId, chapterId) to 1_000L) }
+    position.value = 2_500
 
-      viewStates {
-        val state = awaitLoaded()
-        assertEquals(expected = 0, actual = state.activeIndex)
-        assertEquals(expected = 1_000, actual = state.offsetMs)
-      }
+    viewStates {
+      val state = awaitLoaded()
+      assertEquals(expected = 0, actual = state.activeIndex)
+      assertEquals(expected = 1_000, actual = state.offsetMs)
     }
+  }
 
   @Test
-  fun `tapping a cue plays it from its start in the audio`() =
-    scope.runTest {
-      offsets.updateData { mapOf(subtitleOffsetKey(bookId, chapterId) to -300L) }
-      viewStates {
-        awaitLoaded()
+  fun `tapping a cue plays it from its start in the audio`() = scope.runTest {
+    offsets.updateData { mapOf(subtitleOffsetKey(bookId, chapterId) to -300L) }
+    viewStates {
+      awaitLoaded()
 
-        practice.onCueClick(2_000)
+      practice.onCueClick(2_000)
 
-        verify { player.setPosition(1_700, chapterId) }
-        assertEquals(expected = 1, actual = awaitLoaded().selectedIndex)
-      }
+      verify { player.setPosition(1_700, chapterId) }
+      assertEquals(expected = 1, actual = awaitLoaded().selectedIndex)
     }
+  }
 
   @Test
   fun `repeating loops the sentence playing in the audio, until it is turned off`() =
@@ -109,42 +108,40 @@ class SubtitlePracticeTest {
     }
 
   @Test
-  fun `tapping another sentence while repeating loops that one`() =
-    scope.runTest {
-      viewStates {
-        awaitLoaded()
-        practice.toggleRepeatSentence()
-        runCurrent()
+  fun `tapping another sentence while repeating loops that one`() = scope.runTest {
+    viewStates {
+      awaitLoaded()
+      practice.toggleRepeatSentence()
+      runCurrent()
 
-        practice.onCueClick(5_000)
-        position.value = 5_000
-        runCurrent()
+      practice.onCueClick(5_000)
+      position.value = 5_000
+      runCurrent()
 
-        verify { player.setLoopRange(chapterId, startMs = 5_000, endMs = 6_000) }
-        cancelAndIgnoreRemainingEvents()
-      }
+      verify { player.setLoopRange(chapterId, startMs = 5_000, endMs = 6_000) }
+      cancelAndIgnoreRemainingEvents()
     }
+  }
 
   @Test
-  fun `offsets change per chapter and reset to none`() =
-    scope.runTest {
-      viewStates {
-        awaitLoaded()
+  fun `offsets change per chapter and reset to none`() = scope.runTest {
+    viewStates {
+      awaitLoaded()
 
-        practice.onOffsetChange(SUBTITLE_OFFSET_STEP_MS)
-        practice.onOffsetChange(SUBTITLE_OFFSET_STEP_MS)
-        runCurrent()
-        assertEquals(
-          expected = mapOf(subtitleOffsetKey(bookId, chapterId) to 200L),
-          actual = offsets.data.first(),
-        )
+      practice.onOffsetChange(SUBTITLE_OFFSET_STEP_MS)
+      practice.onOffsetChange(SUBTITLE_OFFSET_STEP_MS)
+      runCurrent()
+      assertEquals(
+        expected = mapOf(subtitleOffsetKey(bookId, chapterId) to 200L),
+        actual = offsets.data.first(),
+      )
 
-        practice.onOffsetReset()
-        runCurrent()
-        assertEquals(expected = emptyMap(), actual = offsets.data.first())
-        cancelAndIgnoreRemainingEvents()
-      }
+      practice.onOffsetReset()
+      runCurrent()
+      assertEquals(expected = emptyMap(), actual = offsets.data.first())
+      cancelAndIgnoreRemainingEvents()
     }
+  }
 
   @Test
   fun `the loop stays on the tapped sentence near it and follows a seek elsewhere`() {
@@ -187,6 +184,7 @@ class SubtitlePracticeTest {
       focusModeStore = SubtitleFocusModeStore(MemoryDataStore(true)),
       starredCuesStore = StarredSubtitleCuesStore(MemoryDataStore(emptySet())),
       offsetsStore = SubtitleOffsetsStore(offsets),
+      playbackModeStore = PlaybackModeStore(MemoryDataStore(PlaybackMode.Sequential)),
     )
   }
 }
@@ -195,9 +193,11 @@ internal fun noSubtitles(): SubtitlePractice {
   return SubtitlePractice(
     player = mockk(),
     subtitleLoader = mockk<SubtitleLoader> { every { loadForAudio(any()) } returns emptyList() },
-    dispatcherProvider = DispatcherProvider(Dispatchers.Unconfined, Dispatchers.Unconfined, Dispatchers.Unconfined),
+    dispatcherProvider =
+      DispatcherProvider(Dispatchers.Unconfined, Dispatchers.Unconfined, Dispatchers.Unconfined),
     focusModeStore = SubtitleFocusModeStore(MemoryDataStore(true)),
     starredCuesStore = StarredSubtitleCuesStore(MemoryDataStore(emptySet())),
     offsetsStore = SubtitleOffsetsStore(MemoryDataStore(emptyMap())),
+    playbackModeStore = PlaybackModeStore(MemoryDataStore(PlaybackMode.Sequential)),
   )
 }

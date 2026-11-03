@@ -6,6 +6,7 @@ import androidx.media3.session.SessionCommand
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import voice.core.logging.api.Logger
+import voice.core.playback.PlaybackMode
 import voice.core.playback.misc.Decibel
 
 @Serializable
@@ -25,6 +26,8 @@ internal sealed interface CustomCommand {
   data class SetLoopRange(val chapterId: String, val startMs: Long, val endMs: Long) : CustomCommand
 
   @Serializable data object ClearLoopRange : CustomCommand
+
+  @Serializable data class SetPlaybackMode(val mode: PlaybackMode) : CustomCommand
 
   companion object {
 

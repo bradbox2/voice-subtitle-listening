@@ -869,4 +869,28 @@
     <string name="widget.shelf.title">Continue listening</string>
     <!-- Shown on the Now playing widget while the sleep timer runs, with the clock time playback stops, like "Stops at 23:10". -->
     <string name="widget.sleep_timer.stops_at">Stops at %1$s</string>
+    <!-- Switches between the cover and the subtitles of the playing file. -->
+    <string name="playback.subtitles.toggle">Subtitles</string>
+    <!-- Opens the row with repeat, speed and subtitle sync on the subtitle screen. -->
+    <string name="playback.subtitles.tools">Practice tools</string>
+    <!-- Plays the current sentence again and again. -->
+    <string name="playback.subtitles.repeat">Repeat sentence</string>
+    <!-- Stars a subtitle line to practice it later. -->
+    <string name="playback.subtitles.star">Star sentence</string>
+    <!-- Removes the star of a subtitle line. -->
+    <string name="playback.subtitles.unstar">Remove star</string>
+    <!-- Moves all subtitles of the file earlier by a tenth of a second. -->
+    <string name="playback.subtitles.sync_earlier">Show subtitles earlier</string>
+    <!-- Moves all subtitles of the file later by a tenth of a second. -->
+    <string name="playback.subtitles.sync_later">Show subtitles later</string>
+    <!-- How far the subtitles are moved, like "Sync +0.3s". Tapping it resets the sync. -->
+    <string name="playback.subtitles.sync">Sync %1$s</string>
+    <!-- Playback mode: plays the files of the book one after the other. Shown on a small button, keep it short. -->
+    <string name="playback.mode.sequential">Seq</string>
+    <!-- Playback mode: repeats the current file. Shown on a small button, keep it short. -->
+    <string name="playback.mode.single_track_loop">One</string>
+    <!-- Playback mode: plays the files in random order. Shown on a small button, keep it short. -->
+    <string name="playback.mode.shuffle">Shuf</string>
+    <!-- Playback mode: repeats all files of the book. Shown on a small button, keep it short. -->
+    <string name="playback.mode.folder_loop">All</string>
 </resources>

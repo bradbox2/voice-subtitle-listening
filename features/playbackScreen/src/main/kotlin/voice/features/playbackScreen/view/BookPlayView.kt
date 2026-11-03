@@ -46,6 +46,7 @@ internal fun BookPlayView(
   onCurrentChapterClick: () -> Unit,
   onJumpBack: (id: Long) -> Unit,
   onJumpBackExpire: (id: Long) -> Unit,
+  subtitleActions: SubtitleActions = SubtitleActions.None,
   snackbarHostState: SnackbarHostState = remember { SnackbarHostState() },
 ) {
   val clock = rememberAnimationClock(running = viewState.playing)
@@ -68,6 +69,8 @@ internal fun BookPlayView(
         if (!sideBySide) {
           PlaybackTopBar(
             showChapters = viewState.showPreviousNextButtons,
+            subtitlesShown = viewState.subtitles?.focusMode,
+            onSubtitlesClick = subtitleActions.onFocusModeClick,
             onCloseClick = onCloseClick,
             onChaptersClick = onCurrentChapterClick,
             onBookActionsClick = onBookActionsClick,
@@ -75,6 +78,27 @@ internal fun BookPlayView(
         }
       },
       content = { contentPadding ->
+        val subtitles = viewState.subtitles
+        if (subtitles != null && subtitles.focusMode && !sideBySide) {
+          SubtitleContent(
+            contentPadding = contentPadding,
+            viewState = viewState,
+            subtitles = subtitles,
+            bookId = bookId,
+            clock = { clock.value },
+            actions = subtitleActions,
+            onPlayClick = onPlayClick,
+            onRewindClick = onRewindClick,
+            onFastForwardClick = onFastForwardClick,
+            onSeek = onSeek,
+            onSkipToNext = onSkipToNext,
+            onSkipToPrevious = onSkipToPrevious,
+            onCurrentChapterClick = onCurrentChapterClick,
+            onJumpBack = onJumpBack,
+            onJumpBackExpire = onJumpBackExpire,
+          )
+          return@Scaffold
+        }
         BookPlayContent(
           contentPadding = contentPadding,
           viewState = viewState,
