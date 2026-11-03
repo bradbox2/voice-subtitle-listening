@@ -2,42 +2,44 @@ package voice.core.playback.player
 
 import android.net.Uri
 import androidx.media3.extractor.Extractor
-import androidx.media3.extractor.ExtractorsFactory
+import androidx.media3.extractor.mp3.LocalMp3Extractor
+import androidx.media3.extractor.mp3.Mp3Extractor
 import androidx.test.ext.junit.runners.AndroidJUnit4
-import io.mockk.mockk
 import kotlin.test.Test
-import kotlin.test.assertSame
+import kotlin.test.assertTrue
 import org.junit.runner.RunWith
 
 @RunWith(AndroidJUnit4::class)
 class LocalIndexSeekingExtractorsFactoryTest {
 
-  private val localExtractor = mockk<Extractor>()
-  private val otherExtractor = mockk<Extractor>()
-  private val factory =
-    LocalIndexSeekingExtractorsFactory(
-      local = ExtractorsFactory { arrayOf(localExtractor) },
-      other = ExtractorsFactory { arrayOf(otherExtractor) },
-    )
+  private val factory = LocalIndexSeekingExtractorsFactory()
 
   @Test
-  fun `files on the device seek by index`() {
-    assertSame(localExtractor, factory.extractorFor("file:///sdcard/Books/one.mp3"))
-    assertSame(
-      localExtractor,
-      factory.extractorFor(
+  fun `mp3 files on the device seek by index`() {
+    listOf(
+        "file:///sdcard/Books/one.mp3",
         "content://com.android.externalstorage.documents/tree/primary%3ABooks/document/primary%3ABooks%2Fone.mp3",
-      ),
-    )
+      )
+      .forEach { uri ->
+        val extractors = extractorsFor(uri)
+        assertTrue(extractors.any { it is LocalMp3Extractor }, uri)
+        assertTrue(extractors.none { it is Mp3Extractor }, uri)
+      }
   }
 
   @Test
-  fun `streamed books don't, as seeking by index reads the file from its start`() {
-    assertSame(otherExtractor, factory.extractorFor("audiobookshelf://item/1/file/2"))
-    assertSame(otherExtractor, factory.extractorFor("https://example.com/one.mp3"))
+  fun `streamed books keep the default, as seeking by index reads the file from its start`() {
+    val extractors = extractorsFor("audiobookshelf://item/1/file/2.mp3")
+
+    assertTrue(extractors.any { it is Mp3Extractor })
+    assertTrue(extractors.none { it is LocalMp3Extractor })
   }
 
-  private fun ExtractorsFactory.extractorFor(uri: String): Extractor {
-    return createExtractors(Uri.parse(uri), emptyMap()).single()
+  @Test
+  fun `other formats stay available for files on the device`() {
+    assertTrue(extractorsFor("file:///sdcard/Books/one.m4b").size > 1)
   }
+
+  private fun extractorsFor(uri: String): List<Extractor> =
+    factory.createExtractors(Uri.parse(uri), emptyMap()).asList()
 }
