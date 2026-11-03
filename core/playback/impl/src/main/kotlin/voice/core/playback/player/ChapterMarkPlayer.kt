@@ -12,6 +12,7 @@ import com.google.common.util.concurrent.ListenableFuture
 import dev.zacsweers.metro.Inject
 import dev.zacsweers.metro.SingleIn
 import voice.core.data.Book
+import voice.core.data.ChapterId
 import voice.core.data.ChapterMark
 import voice.core.data.durationMs
 import voice.core.logging.api.Logger
@@ -39,6 +40,7 @@ class ChapterMarkPlayer(
   private var markItems: List<MediaItemData> = emptyList()
   private var reportedItemIndex: Int? = null
   private val boundaryMessages = mutableListOf<PlayerMessage>()
+  private var loopMessage: PlayerMessage? = null
 
   var onChapterEnding: () -> Unit = {}
 
@@ -60,6 +62,7 @@ class ChapterMarkPlayer(
     startItemIndex: Int,
     positionInItemMs: Long,
   ) {
+    clearLoopRange()
     val playlist = applyBook(book)
     reportedItemIndex = startItemIndex
     player.setMediaItems(
@@ -122,6 +125,32 @@ class ChapterMarkPlayer(
 
   fun setSkipSilenceEnabled(enabled: Boolean) {
     player.skipSilenceEnabled = enabled
+  }
+
+  /**
+   * A message at the end of the range jumps back exactly when playback reaches it, at any speed,
+   * where polling the position would overshoot into the next sentence.
+   */
+  fun setLoopRange(
+    chapterId: ChapterId,
+    startMs: Long,
+    endMs: Long,
+  ) {
+    clearLoopRange()
+    val fileIndex = book?.chapters?.indexOfFirst { it.id == chapterId }?.takeIf { it >= 0 } ?: return
+    if (endMs <= startMs) return
+    loopMessage =
+      player
+        .createMessage { _, _ -> player.seekTo(fileIndex, startMs) }
+        .setPosition(fileIndex, endMs)
+        .setDeleteAfterDelivery(false)
+        .setLooper(player.applicationLooper)
+        .also { it.send() }
+  }
+
+  fun clearLoopRange() {
+    loopMessage?.cancel()
+    loopMessage = null
   }
 
   /**
@@ -312,6 +341,7 @@ class ChapterMarkPlayer(
     if (book == null) return super.handleRemoveMediaItems(fromIndex, toIndex)
     if (fromIndex > 0 || toIndex < markItems.size) return ignoreChapterEdit("remove")
     clearBoundaryMessages()
+    clearLoopRange()
     book = null
     playlist = null
     markItems = emptyList()
@@ -327,6 +357,7 @@ class ChapterMarkPlayer(
 
   override fun handleRelease(): ListenableFuture<*> {
     clearBoundaryMessages()
+    clearLoopRange()
     return super.handleRelease()
   }
 }

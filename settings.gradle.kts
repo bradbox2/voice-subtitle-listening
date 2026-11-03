@@ -95,6 +95,8 @@ include(":core:scanner")
 
 include(":core:search")
 
+include(":core:subtitle")
+
 include(":core:sleeptimer:api")
 
 include(":core:sleeptimer:impl")

@@ -236,6 +236,26 @@ class PlayerControllerImpl(
     controller.pause()
   }
 
+  override fun pauseWithoutRewind() {
+    scope.launch {
+      awaitConnect()?.sendCustomCommand(CustomCommand.PauseWithoutRewind)
+    }
+  }
+
+  override fun setLoopRange(
+    chapterId: ChapterId,
+    startMs: Long,
+    endMs: Long,
+  ) = executeAfterPrepare { controller ->
+    controller.sendCustomCommand(CustomCommand.SetLoopRange(chapterId.value, startMs, endMs))
+  }
+
+  override fun clearLoopRange() {
+    scope.launch {
+      awaitConnect()?.sendCustomCommand(CustomCommand.ClearLoopRange)
+    }
+  }
+
   override fun setSpeed(speed: Float) = executeAfterPrepare { controller ->
     controller.setPlaybackSpeed(speed)
   }

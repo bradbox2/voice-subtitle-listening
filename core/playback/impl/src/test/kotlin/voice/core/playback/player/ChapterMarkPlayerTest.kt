@@ -244,6 +244,41 @@ class ChapterMarkPlayerTest {
     assertFalse(exoPlayer.shuffleModeEnabled)
   }
 
+  @Test
+  fun `a loop range jumps back to its start every time playback reaches its end`() {
+    setBook(listOf(singleFileWithThreeMarks()))
+    player.seekTo(0, 3_000)
+    player.setLoopRange(book.chapters.single().id, startMs = 2_000, endMs = 4_000)
+
+    exoPlayer.play()
+    repeat(2) {
+      TestPlayerRunHelper.runUntilPositionDiscontinuity(exoPlayer, Player.DISCONTINUITY_REASON_SEEK)
+      assertTrue(exoPlayer.currentPosition in 2_000L..<2_100L, "at ${exoPlayer.currentPosition}")
+    }
+  }
+
+  @Test
+  fun `playback continues past a cleared loop range`() {
+    setBook(listOf(singleFileWithThreeMarks()))
+    player.setLoopRange(book.chapters.single().id, startMs = 0, endMs = 1_000)
+    player.clearLoopRange()
+
+    TestPlayerRunHelper.play(exoPlayer).untilPositionAtLeast(0, 2_000)
+
+    assertTrue(exoPlayer.currentPosition >= 2_000)
+  }
+
+  @Test
+  fun `a new book clears the loop range`() {
+    setBook(listOf(singleFileWithThreeMarks()))
+    player.setLoopRange(book.chapters.single().id, startMs = 0, endMs = 1_000)
+    setBook(listOf(singleFileWithThreeMarks()))
+
+    TestPlayerRunHelper.play(exoPlayer).untilPositionAtLeast(0, 2_000)
+
+    assertTrue(exoPlayer.currentPosition >= 2_000)
+  }
+
   private fun recordDiscontinuities(
     reason: Int,
   ): List<Pair<Player.PositionInfo, Player.PositionInfo>> {

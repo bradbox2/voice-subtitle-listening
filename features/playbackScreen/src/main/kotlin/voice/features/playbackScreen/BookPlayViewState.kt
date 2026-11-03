@@ -3,6 +3,7 @@ package voice.features.playbackScreen
 import androidx.compose.runtime.Immutable
 import kotlin.time.Duration
 import voice.core.playback.misc.Decibel
+import voice.features.playbackScreen.subtitle.SubtitlesViewState
 
 @Immutable
 data class BookPlayViewState(
@@ -27,6 +28,7 @@ data class BookPlayViewState(
   val jumpBack: JumpBackViewState?,
   /** A server book that isn't downloaded while the server can't be reached. */
   val unavailable: Boolean = false,
+  val subtitles: SubtitlesViewState? = null,
 ) {
 
   /**

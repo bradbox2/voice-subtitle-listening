@@ -58,6 +58,7 @@ import voice.core.playback.history.PlaybackPosition
 import voice.core.playback.overlay
 import voice.core.playback.playstate.PlayStateManager
 import voice.core.sleeptimer.SleepTimer
+import voice.features.playbackScreen.subtitle.noSubtitles
 import voice.core.sleeptimer.SleepTimerMode
 import voice.core.sleeptimer.SleepTimerMode.TimedWithDuration
 import voice.core.sleeptimer.SleepTimerPreference
@@ -138,6 +139,7 @@ class BookPlayViewModelTest {
       player =
         player.apply {
           every { pauseIfCurrentBookDifferentFrom(book.id) } just Runs
+          every { livePlaybackStateFlow(book.id) } returns MutableStateFlow(null)
         },
       sleepTimer = sleepTimer,
       playStateManager = playStateManager,
@@ -158,6 +160,7 @@ class BookPlayViewModelTest {
       clock = clock,
       serverLibrary = serverLibrary,
       lastPlaybackSpeedStore = LastPlaybackSpeedStore(MemoryDataStore(1F)),
+      subtitles = noSubtitles(),
     )
 
   @Test
@@ -616,6 +619,7 @@ class BookPlayViewModelTest {
       clock = clock,
       serverLibrary = serverLibrary,
       lastPlaybackSpeedStore = LastPlaybackSpeedStore(MemoryDataStore(lastPlaybackSpeed)),
+      subtitles = noSubtitles(),
     )
   }
 }

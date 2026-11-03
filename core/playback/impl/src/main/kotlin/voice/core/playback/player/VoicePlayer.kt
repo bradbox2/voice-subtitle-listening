@@ -16,6 +16,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import voice.core.analytics.api.Analytics
 import voice.core.data.BookContent
+import voice.core.data.ChapterId
 import voice.core.data.ListeningEvent
 import voice.core.data.repo.BookRepository
 import voice.core.data.store.CurrentBookStore
@@ -58,6 +59,7 @@ class VoicePlayer(
 ) : ForwardingPlayer(player) {
 
   private var skipSilence = false
+  private var skipNextAutoRewind = false
 
   private val endOfChapterSleepTimerListener =
     object : Player.Listener {
@@ -108,8 +110,14 @@ class VoicePlayer(
         playWhenReady: Boolean,
         reason: Int,
       ) {
-        if (!playWhenReady && reason in autoRewindReasons) {
-          autoRewind()
+        if (playWhenReady) {
+          skipNextAutoRewind = false
+        } else if (reason in autoRewindReasons) {
+          if (skipNextAutoRewind) {
+            skipNextAutoRewind = false
+          } else {
+            autoRewind()
+          }
         }
       }
     }
@@ -293,6 +301,24 @@ class VoicePlayer(
 
   override fun pause() {
     playWhenReady = false
+  }
+
+  fun pauseWithoutRewind() {
+    if (!playWhenReady) return
+    skipNextAutoRewind = true
+    pause()
+  }
+
+  fun setLoopRange(
+    chapterId: ChapterId,
+    startMs: Long,
+    endMs: Long,
+  ) {
+    player.setLoopRange(chapterId, startMs, endMs)
+  }
+
+  fun clearLoopRange() {
+    player.clearLoopRange()
   }
 
   private fun updateLastPlayedAt() {

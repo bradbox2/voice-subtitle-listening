@@ -51,6 +51,18 @@ interface PlayerController {
 
   fun pauseWithRewind(rewind: Duration)
 
+  /** Pauses without the auto rewind, so a listener reading along stays on the same sentence. */
+  fun pauseWithoutRewind()
+
+  /** Positions are in the audio file of [chapterId], playback jumps back to [startMs] at [endMs]. */
+  fun setLoopRange(
+    chapterId: ChapterId,
+    startMs: Long,
+    endMs: Long,
+  )
+
+  fun clearLoopRange()
+
   fun setSpeed(speed: Float)
 
   fun setGain(gain: Decibel)

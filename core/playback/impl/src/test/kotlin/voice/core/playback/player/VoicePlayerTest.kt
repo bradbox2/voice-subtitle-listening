@@ -679,6 +679,41 @@ class VoicePlayerTest {
   }
 
   @Test
+  fun `pausing without rewind keeps the position, and the next pause rewinds again`() =
+    scope.runTest {
+      setMediaItems(listOf(chapter(ChapterMark(startMs = 0, endMs = 20_000, name = null))))
+      autoRewindAmountStore.updateData { 5 }
+
+      player.seekTo(0, 15_000)
+      player.prepare()
+      awaitReady()
+
+      player.play()
+      player.pauseWithoutRewind()
+      player.shouldHavePosition(0, 15_000)
+
+      player.play()
+      player.pause()
+      player.shouldHavePosition(0, 10_000)
+    }
+
+  @Test
+  fun `pausing without rewind while paused does not skip the rewind of the next pause`() =
+    scope.runTest {
+      setMediaItems(listOf(chapter(ChapterMark(startMs = 0, endMs = 20_000, name = null))))
+      autoRewindAmountStore.updateData { 5 }
+
+      player.seekTo(0, 15_000)
+      player.prepare()
+      awaitReady()
+
+      player.pauseWithoutRewind()
+      player.play()
+      player.pause()
+      player.shouldHavePosition(0, 10_000)
+    }
+
+  @Test
   fun `pausing a finished book keeps it at its end`() = scope.runTest {
     setMediaItems(listOf(chapter(ChapterMark(startMs = 0, endMs = 10_000, name = null))))
     autoRewindAmountStore.updateData { 5 }

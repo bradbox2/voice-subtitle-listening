@@ -19,6 +19,13 @@ internal sealed interface CustomCommand {
 
   @Serializable data class SetGain(val gain: Decibel) : CustomCommand
 
+  @Serializable data object PauseWithoutRewind : CustomCommand
+
+  @Serializable
+  data class SetLoopRange(val chapterId: String, val startMs: Long, val endMs: Long) : CustomCommand
+
+  @Serializable data object ClearLoopRange : CustomCommand
+
   companion object {
 
     const val CUSTOM_COMMAND_ACTION = "voiceCommandAction"

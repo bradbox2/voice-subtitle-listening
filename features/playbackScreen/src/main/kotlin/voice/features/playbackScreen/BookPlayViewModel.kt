@@ -53,6 +53,7 @@ import voice.core.sleeptimer.SleepTimerPreferenceStore
 import voice.core.sleeptimer.SleepTimerState
 import voice.core.ui.formatTime
 import voice.features.playbackScreen.batteryOptimization.BatteryOptimization
+import voice.features.playbackScreen.subtitle.SubtitlePractice
 import voice.navigation.Destination
 import voice.navigation.Navigator
 
@@ -78,6 +79,7 @@ class BookPlayViewModel(
   private val clock: Clock,
   private val serverLibrary: ServerLibrary,
   private val lastPlaybackSpeedStore: LastPlaybackSpeedStore,
+  internal val subtitles: SubtitlePractice,
   @Assisted private val bookId: BookId,
 ) {
 
@@ -111,12 +113,10 @@ class BookPlayViewModel(
         ?.withDefaultSpeed { defaultSpeed ?: return null } ?: return null
 
     val experimentalPlaybackPersistence = experimentalPlaybackPersistenceFeatureFlag.get()
-    val livePlaybackState =
-      if (experimentalPlaybackPersistence) {
-        remember(bookId) { player.livePlaybackStateFlow(bookId) }.collectAsState(null).value
-      } else {
-        null
-      }
+    // subtitles follow the player itself, the stored position is only written now and then
+    val playerState =
+      remember(bookId) { player.livePlaybackStateFlow(bookId) }.collectAsState(null).value
+    val livePlaybackState = playerState.takeIf { experimentalPlaybackPersistence }
     val managerPlayState by remember {
       playStateManager.playStateFlow
     }
@@ -150,6 +150,13 @@ class BookPlayViewModel(
         book.currentChapter.chapterMarks.indexOf(currentMark) +
         1
     val lastJump = remember { historyRecorder.lastJump }.collectAsState().value
+    val subtitlesViewState =
+      subtitles.viewState(
+        bookId = persistedBook.id,
+        chapterId = playerState?.chapterId ?: persistedBook.content.currentChapter,
+        positionMs = playerState?.positionMs ?: persistedBook.content.positionInChapter,
+        playbackSpeed = playerState?.playbackSpeed ?: persistedBook.content.playbackSpeed,
+      )
     val unavailableBooks = remember {
       serverLibrary.unavailableBooks
     }
@@ -176,6 +183,7 @@ class BookPlayViewModel(
       skipSeconds = skipSeconds,
       jumpBack = lastJump?.let { jumpBackViewState(book, it, chapterNumber) },
       unavailable = book.id in unavailableBooks,
+      subtitles = subtitlesViewState,
     )
   }
 
@@ -313,7 +321,11 @@ class BookPlayViewModel(
         }
       }
     }
-    player.playPause()
+    if (subtitles.active && playStateManager.playState == PlayStateManager.PlayState.Playing) {
+      player.pauseWithoutRewind()
+    } else {
+      player.playPause()
+    }
   }
 
   fun rewind() {

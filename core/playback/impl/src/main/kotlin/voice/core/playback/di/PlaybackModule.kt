@@ -12,7 +12,6 @@ import androidx.media3.datasource.DefaultDataSource
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
 import androidx.media3.exoplayer.source.MediaSource
-import androidx.media3.extractor.DefaultExtractorsFactory
 import androidx.media3.session.CommandButton
 import androidx.media3.session.MediaLibraryService
 import dev.zacsweers.metro.BindingContainer
@@ -30,6 +29,7 @@ import voice.core.playback.history.CommandSourceResolver
 import voice.core.playback.misc.VolumeGain
 import voice.core.playback.notification.MainActivityIntentProvider
 import voice.core.playback.player.DurationInconsistenciesUpdater
+import voice.core.playback.player.LocalIndexSeekingExtractorsFactory
 import voice.core.playback.player.OnlyAudioRenderersFactory
 import voice.core.playback.player.VoicePlayer
 import voice.core.playback.player.onAudioSessionIdChanged
@@ -53,8 +53,7 @@ object PlaybackModule {
     // schemes the default data source doesn't know, like the ids of server books, go to the remote
     // one
     val dataSourceFactory = DefaultDataSource.Factory(context, remoteDataSourceFactory)
-    val extractorsFactory = DefaultExtractorsFactory().setConstantBitrateSeekingEnabled(true)
-    return DefaultMediaSourceFactory(dataSourceFactory, extractorsFactory)
+    return DefaultMediaSourceFactory(dataSourceFactory, LocalIndexSeekingExtractorsFactory())
   }
 
   @Provides

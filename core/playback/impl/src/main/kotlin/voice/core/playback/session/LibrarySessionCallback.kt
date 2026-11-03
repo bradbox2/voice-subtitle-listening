@@ -29,6 +29,7 @@ import kotlinx.coroutines.guava.await
 import kotlinx.coroutines.guava.future
 import kotlinx.coroutines.launch
 import voice.core.data.Book
+import voice.core.data.ChapterId
 import voice.core.data.repo.BookRepository
 import voice.core.data.store.CurrentBookStore
 import voice.core.logging.api.Logger
@@ -291,6 +292,15 @@ class LibrarySessionCallback(
       }
       is CustomCommand.SetGain -> {
         player.setGain(command.gain)
+      }
+      CustomCommand.PauseWithoutRewind -> {
+        player.pauseWithoutRewind()
+      }
+      is CustomCommand.SetLoopRange -> {
+        player.setLoopRange(ChapterId(command.chapterId), command.startMs, command.endMs)
+      }
+      CustomCommand.ClearLoopRange -> {
+        player.clearLoopRange()
       }
     }
 
