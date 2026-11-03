@@ -43,6 +43,8 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -187,7 +189,7 @@ private fun SubtitleTools(
   FlowRow(
     modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
     itemVerticalAlignment = Alignment.CenterVertically,
-    horizontalArrangement = Arrangement.spacedBy(4.dp, Alignment.CenterHorizontally),
+    horizontalArrangement = Arrangement.spacedBy(2.dp, Alignment.CenterHorizontally),
   ) {
     FilledTonalIconToggleButton(
       checked = subtitles.repeatSentence,
@@ -206,29 +208,37 @@ private fun SubtitleTools(
         label = { Text(speedFormat.format(option.speed)) },
       )
     }
-    IconButton(onClick = { actions.onOffsetChange(-SUBTITLE_OFFSET_STEP_MS) }) {
-      Icon(
-        imageVector = VoiceIcons.Remove,
-        contentDescription = stringResource(StringsR.string.playback_subtitles_sync_earlier),
+    // one piece, so wrapping never separates the buttons from the value
+    Row(verticalAlignment = Alignment.CenterVertically) {
+      IconButton(
+        onClick = { actions.onOffsetChange(-SUBTITLE_OFFSET_STEP_MS) },
+        modifier = Modifier.size(40.dp),
+      ) {
+        Icon(
+          imageVector = VoiceIcons.Remove,
+          contentDescription = stringResource(StringsR.string.playback_subtitles_sync_earlier),
+        )
+      }
+      val offset = formatSubtitleOffset(subtitles.offsetMs)
+      val syncDescription = stringResource(StringsR.string.playback_subtitles_sync, offset)
+      Text(
+        text = offset,
+        style = MaterialTheme.typography.labelLarge,
+        modifier =
+          Modifier.clip(RoundedCornerShape(6.dp))
+            .clickable(onClick = actions.onOffsetReset)
+            .semantics { contentDescription = syncDescription }
+            .padding(horizontal = 2.dp, vertical = 6.dp),
       )
-    }
-    Text(
-      text =
-        stringResource(
-          StringsR.string.playback_subtitles_sync,
-          formatSubtitleOffset(subtitles.offsetMs),
-        ),
-      style = MaterialTheme.typography.labelMedium,
-      modifier =
-        Modifier.clip(RoundedCornerShape(6.dp))
-          .clickable(onClick = actions.onOffsetReset)
-          .padding(horizontal = 4.dp, vertical = 6.dp),
-    )
-    IconButton(onClick = { actions.onOffsetChange(SUBTITLE_OFFSET_STEP_MS) }) {
-      Icon(
-        imageVector = VoiceIcons.Add,
-        contentDescription = stringResource(StringsR.string.playback_subtitles_sync_later),
-      )
+      IconButton(
+        onClick = { actions.onOffsetChange(SUBTITLE_OFFSET_STEP_MS) },
+        modifier = Modifier.size(40.dp),
+      ) {
+        Icon(
+          imageVector = VoiceIcons.Add,
+          contentDescription = stringResource(StringsR.string.playback_subtitles_sync_later),
+        )
+      }
     }
   }
 }
