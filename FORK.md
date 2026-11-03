@@ -62,7 +62,13 @@ git merge upstream/main   # 或 rebase
 
 合并后对照第一节逐条检查，再装到手机上实测：长文件拖到后段，暂停/点字幕/单句循环，听高亮是否对得上。
 
-## 五、本机环境备忘（Windows）
+## 五、和上游不同的仓库文件
+
+- `README.md`：fork 自己的说明（注明不是官方 Voice）。同步上游时保留 fork 版本。
+- 删除了 `.github/workflows/deploy_pages.yml`：它在推送 `main` 时会把上游的官方网站部署到本仓库的 GitHub Pages，看起来像官方 Voice。同步上游时如果它又出现，再删掉。
+- 其余发布类工作流（Play、Firebase、release）只能手动触发且需要本仓库没有的密钥，保留不动。
+
+## 六、本机环境备忘（Windows）
 
 - 这些上游测试在 Windows 上失败，与 fork 无关（Room 测试数据库路径、`File.toUri()` 差异）：`core:data:impl` 的 `Migration*Test`、`DataBaseMigratorTest`、`ConvertersTest`、`CustomMetadataRepoImplTest`；`core:scanner` 的 `MediaScannerTest` 中三个改名相关用例。在 Linux CI 上应通过。
 - 装机：`adb install -r app/build/outputs/apk/free/debug/app-free-debug.apk`。签名用本机 `~/.android/debug.keystore`。**签名不一致时不要卸载旧版**（会清空书库），先想办法。
