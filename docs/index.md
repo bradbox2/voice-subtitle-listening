@@ -12,3 +12,7 @@ This fork lives at [bradbox2/voice-subtitle-listening](https://github.com/bradbo
 Best results come from short practice clips around 3-8 minutes. For the most stable subtitle sync, prefer clips no longer than 10 minutes.
 
 Learn more on the [About](about.md) and [Development](development.md) pages.
+
+## Latest Improvements
+
+- [Subtitle Sync Improvements](subtitle-sync-improvements.md) — sample-accurate MP3 seeking (gradual rollout) and per-chapter offset adjustment

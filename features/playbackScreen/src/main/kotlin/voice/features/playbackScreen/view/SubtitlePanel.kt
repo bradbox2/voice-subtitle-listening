@@ -2,6 +2,7 @@ package voice.features.playbackScreen.view
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
@@ -14,6 +15,8 @@ import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Add
+import androidx.compose.material.icons.outlined.Remove
 import androidx.compose.material.icons.outlined.Star
 import androidx.compose.material.icons.outlined.StarBorder
 import androidx.compose.material3.Icon
@@ -26,10 +29,14 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import voice.features.playbackScreen.BookPlayViewState
+import voice.features.playbackScreen.SUBTITLE_OFFSET_STEP_MS
+import voice.features.playbackScreen.formatSubtitleOffset
 import kotlin.math.abs
 
 @Composable
@@ -78,6 +85,44 @@ internal fun SubtitlePanel(
         focusDistance = viewState.activeIndex?.let { activeIndex -> abs(index - activeIndex) },
         onSubtitleClick = onSubtitleClick,
         onSubtitleStarClick = onSubtitleStarClick,
+      )
+    }
+  }
+}
+
+@Composable
+internal fun SubtitleOffsetRow(
+  offsetMs: Long,
+  onOffsetChange: (Long) -> Unit,
+  onOffsetReset: () -> Unit,
+  modifier: Modifier = Modifier,
+) {
+  Row(
+    modifier = modifier,
+    verticalAlignment = Alignment.CenterVertically,
+    horizontalArrangement = Arrangement.Center,
+  ) {
+    IconButton(onClick = { onOffsetChange(-SUBTITLE_OFFSET_STEP_MS) }) {
+      Icon(
+        imageVector = Icons.Outlined.Remove,
+        contentDescription = "Show subtitles earlier",
+        modifier = Modifier.size(18.dp),
+      )
+    }
+    Text(
+      text = "Sync ${formatSubtitleOffset(offsetMs)}",
+      style = MaterialTheme.typography.labelMedium,
+      modifier = Modifier
+        .clip(RoundedCornerShape(6.dp))
+        .clickable(onClick = onOffsetReset)
+        .padding(horizontal = 10.dp, vertical = 6.dp)
+        .semantics { contentDescription = "Reset subtitle sync" },
+    )
+    IconButton(onClick = { onOffsetChange(SUBTITLE_OFFSET_STEP_MS) }) {
+      Icon(
+        imageVector = Icons.Outlined.Add,
+        contentDescription = "Show subtitles later",
+        modifier = Modifier.size(18.dp),
       )
     }
   }

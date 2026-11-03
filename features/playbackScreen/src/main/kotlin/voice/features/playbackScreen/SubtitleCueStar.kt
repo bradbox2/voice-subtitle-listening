@@ -26,7 +26,7 @@ internal fun Set<String>.toggleSubtitleCueStar(key: String): Set<String> {
   }
 }
 
-private fun String.stableShortHash(): String {
+internal fun String.stableShortHash(): String {
   val digest = MessageDigest.getInstance("SHA-256").digest(toByteArray(Charsets.UTF_8))
   return digest.take(8).joinToString(separator = "") { byte -> "%02x".format(byte) }
 }

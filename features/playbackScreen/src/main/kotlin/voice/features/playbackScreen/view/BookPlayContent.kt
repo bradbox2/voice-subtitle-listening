@@ -47,6 +47,8 @@ internal fun BookPlayContent(
   onSeek: (Duration) -> Unit,
   onSubtitleClick: (Long) -> Unit,
   onSubtitleStarClick: (String) -> Unit,
+  onSubtitleOffsetChange: (Long) -> Unit,
+  onSubtitleOffsetReset: () -> Unit,
   onPlaybackModeClick: () -> Unit,
   onSkipToNext: () -> Unit,
   onSkipToPrevious: () -> Unit,
@@ -65,6 +67,8 @@ internal fun BookPlayContent(
       onSeek = onSeek,
       onSubtitleClick = onSubtitleClick,
       onSubtitleStarClick = onSubtitleStarClick,
+      onSubtitleOffsetChange = onSubtitleOffsetChange,
+      onSubtitleOffsetReset = onSubtitleOffsetReset,
       onPlaybackModeClick = onPlaybackModeClick,
       onSkipToNext = onSkipToNext,
       onSkipToPrevious = onSkipToPrevious,
@@ -164,6 +168,8 @@ private fun SubtitleFocusedContent(
   onSeek: (Duration) -> Unit,
   onSubtitleClick: (Long) -> Unit,
   onSubtitleStarClick: (String) -> Unit,
+  onSubtitleOffsetChange: (Long) -> Unit,
+  onSubtitleOffsetReset: () -> Unit,
   onPlaybackModeClick: () -> Unit,
   onSkipToNext: () -> Unit,
   onSkipToPrevious: () -> Unit,
@@ -223,6 +229,11 @@ private fun SubtitleFocusedContent(
             .weight(1F)
             .fillMaxWidth()
             .padding(top = 4.dp, bottom = 10.dp),
+        )
+        SubtitleOffsetRow(
+          offsetMs = subtitles.offsetMs,
+          onOffsetChange = onSubtitleOffsetChange,
+          onOffsetReset = onSubtitleOffsetReset,
         )
         SliderRow(
           duration = viewState.duration,

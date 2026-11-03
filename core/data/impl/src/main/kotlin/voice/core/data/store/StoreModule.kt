@@ -202,6 +202,17 @@ public interface StoreModule {
 
   @Provides
   @SingleIn(AppScope::class)
+  @SubtitleOffsetsStore
+  private fun subtitleOffsets(factory: VoiceDataStoreFactory): DataStore<Map<String, Long>> {
+    return factory.create(
+      serializer = MapSerializer(String.serializer(), Long.serializer()),
+      defaultValue = emptyMap(),
+      fileName = "subtitleOffsets",
+    )
+  }
+
+  @Provides
+  @SingleIn(AppScope::class)
   @PlaybackModeStore
   private fun playbackMode(factory: VoiceDataStoreFactory): DataStore<PlaybackMode> {
     return factory.create(

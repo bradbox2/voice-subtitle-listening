@@ -57,6 +57,7 @@ class BookPlayViewModelTest {
   private val sleepTimerDataStore = MemoryDataStore(SleepTimerPreference.Default.copy(duration = 5.minutes))
   private val subtitleFocusModeEnabledStore = MemoryDataStore(true)
   private val starredSubtitleCueKeysStore = MemoryDataStore(emptySet<String>())
+  private val subtitleOffsetsStore = MemoryDataStore(emptyMap<String, Long>())
   private val playbackModeStore = MemoryDataStore(PlaybackMode.Sequential)
   private val book = book()
   private val sleepTimer = mockk<SleepTimer> {
@@ -126,6 +127,7 @@ class BookPlayViewModelTest {
     sleepTimerPreferenceStore = sleepTimerDataStore,
     subtitleFocusModeEnabledStore = subtitleFocusModeEnabledStore,
     starredSubtitleCueKeysStore = starredSubtitleCueKeysStore,
+    subtitleOffsetsStore = subtitleOffsetsStore,
     playbackModeStore = playbackModeStore,
     bookId = book.id,
     dispatcherProvider = DispatcherProvider(scope.coroutineContext, scope.coroutineContext, scope.coroutineContext),
@@ -404,6 +406,7 @@ class BookPlayViewModelTest {
         repeatSentenceEnabled = false,
         playbackMode = PlaybackMode.Sequential,
         activeIndex = 0,
+        offsetMs = 0L,
         speedOptions = listOf(
           BookPlayViewState.SubtitlePanelViewState.SpeedOption(speed = 0.75F, selected = false),
           BookPlayViewState.SubtitlePanelViewState.SpeedOption(speed = 1.0F, selected = true),
@@ -1219,6 +1222,100 @@ class BookPlayViewModelTest {
     }
   }
 
+  @Test
+  fun `subtitle offset shifts active cue detection`() = scope.runTest {
+    val offsetKey = subtitleOffsetKey(book.id, book.currentChapter.id)
+    val offsetsStore = MemoryDataStore(mapOf(offsetKey to 30.seconds.inWholeMilliseconds))
+    val livePlaybackFlow = MutableStateFlow<LivePlaybackState?>(
+      LivePlaybackState(
+        bookId = book.id,
+        chapterId = book.currentChapter.id,
+        positionMs = 2.2.minutes.inWholeMilliseconds,
+        isPlaying = true,
+        playbackSpeed = 1F,
+      ),
+    )
+    val cues = listOf(
+      SubtitleCue(
+        startMs = 1.minutes.inWholeMilliseconds,
+        endMs = 2.minutes.inWholeMilliseconds,
+        text = "Shifted active cue",
+      ),
+    )
+    val viewModel = viewModel(
+      experimentalPlaybackPersistence = true,
+      livePlaybackFlow = livePlaybackFlow,
+      subtitleOffsetsStore = offsetsStore,
+      subtitleLoader = mockk {
+        every { loadForAudio(book.currentChapter.id.toUri()) } returns cues
+      },
+    )
+
+    backgroundScope.launchMolecule(RecompositionMode.Immediate) {
+      viewModel.viewState()
+    }.test {
+      awaitItem() shouldBe null
+      val state = awaitStateWithSubtitles()
+
+      // Position 2.2min is past the raw cue end, but with a +30s offset the
+      // cue is active during [1.5min, 2.5min) of playback time.
+      state.subtitles!!.activeIndex shouldBe 0
+      state.subtitles.offsetMs shouldBe 30.seconds.inWholeMilliseconds
+      cancelAndIgnoreRemainingEvents()
+    }
+  }
+
+  @Test
+  fun `onSubtitleClick seeks with subtitle offset applied`() = scope.runTest {
+    val offsetKey = subtitleOffsetKey(book.id, book.currentChapter.id)
+    val offsetsStore = MemoryDataStore(mapOf(offsetKey to 500L))
+    val player = mockk<PlayerController> {
+      every { pauseIfCurrentBookDifferentFrom(book.id) } just Runs
+      every { setPosition(any(), any()) } just Runs
+    }
+    val viewModel = viewModel(
+      player = player,
+      subtitleOffsetsStore = offsetsStore,
+    )
+
+    viewModel.onSubtitleClick(2.minutes.inWholeMilliseconds)
+    yield()
+
+    verify(exactly = 1) {
+      player.setPosition(
+        time = 2.minutes.inWholeMilliseconds + 500L,
+        id = book.currentChapter.id,
+      )
+    }
+  }
+
+  @Test
+  fun `onSubtitleOffsetChange persists clamped offset for current chapter`() = scope.runTest {
+    val offsetsStore = MemoryDataStore(emptyMap<String, Long>())
+    val viewModel = viewModel(subtitleOffsetsStore = offsetsStore)
+    val offsetKey = subtitleOffsetKey(book.id, book.currentChapter.id)
+
+    viewModel.onSubtitleOffsetChange(100L)
+    yield()
+    offsetsStore.data.first() shouldBe mapOf(offsetKey to 100L)
+
+    viewModel.onSubtitleOffsetChange(100_000L)
+    yield()
+    offsetsStore.data.first() shouldBe mapOf(offsetKey to 60_000L)
+  }
+
+  @Test
+  fun `onSubtitleOffsetReset clears offset for current chapter`() = scope.runTest {
+    val offsetKey = subtitleOffsetKey(book.id, book.currentChapter.id)
+    val offsetsStore = MemoryDataStore(mapOf(offsetKey to 300L))
+    val viewModel = viewModel(subtitleOffsetsStore = offsetsStore)
+
+    viewModel.onSubtitleOffsetReset()
+    yield()
+
+    offsetsStore.data.first() shouldBe emptyMap()
+  }
+
   private suspend fun ReceiveTurbine<BookPlayViewState?>.awaitStateWithSubtitles(): BookPlayViewState {
     while (true) {
       val state = awaitItem()
@@ -1235,6 +1332,7 @@ class BookPlayViewModelTest {
     mediaScanTrigger: MediaScanTrigger = this.mediaScanTrigger,
     subtitleFocusModeEnabledStore: MemoryDataStore<Boolean> = this.subtitleFocusModeEnabledStore,
     starredSubtitleCueKeysStore: MemoryDataStore<Set<String>> = this.starredSubtitleCueKeysStore,
+    subtitleOffsetsStore: MemoryDataStore<Map<String, Long>> = this.subtitleOffsetsStore,
     playbackModeStore: MemoryDataStore<PlaybackMode> = this.playbackModeStore,
     player: PlayerController = mockk {
       every { pauseIfCurrentBookDifferentFrom(book.id) } just Runs
@@ -1267,6 +1365,7 @@ class BookPlayViewModelTest {
       sleepTimerPreferenceStore = sleepTimerDataStore,
       subtitleFocusModeEnabledStore = subtitleFocusModeEnabledStore,
       starredSubtitleCueKeysStore = starredSubtitleCueKeysStore,
+      subtitleOffsetsStore = subtitleOffsetsStore,
       playbackModeStore = playbackModeStore,
       bookId = book.id,
       dispatcherProvider = DispatcherProvider(scope.coroutineContext, scope.coroutineContext, scope.coroutineContext),

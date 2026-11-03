@@ -28,6 +28,7 @@ data class BookPlayViewState(
     val repeatSentenceEnabled: Boolean,
     val playbackMode: PlaybackMode,
     val activeIndex: Int?,
+    val offsetMs: Long,
     val speedOptions: List<SpeedOption>,
     val items: List<Item>,
   ) {

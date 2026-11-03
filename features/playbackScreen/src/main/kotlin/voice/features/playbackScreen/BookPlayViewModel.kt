@@ -38,6 +38,7 @@ import voice.core.data.store.PlaybackModeStore
 import voice.core.data.store.SleepTimerPreferenceStore
 import voice.core.data.store.StarredSubtitleCueKeysStore
 import voice.core.data.store.SubtitleFocusModeStore
+import voice.core.data.store.SubtitleOffsetsStore
 import voice.core.data.toUri
 import voice.core.featureflag.ExperimentalPlaybackPersistenceQualifier
 import voice.core.featureflag.FeatureFlag
@@ -89,6 +90,8 @@ class BookPlayViewModel(
   private val subtitleFocusModeEnabledStore: DataStore<Boolean>,
   @StarredSubtitleCueKeysStore
   private val starredSubtitleCueKeysStore: DataStore<Set<String>>,
+  @SubtitleOffsetsStore
+  private val subtitleOffsetsStore: DataStore<Map<String, Long>>,
   @PlaybackModeStore
   private val playbackModeStore: DataStore<PlaybackMode>,
   @ExperimentalPlaybackPersistenceQualifier
@@ -195,11 +198,18 @@ class BookPlayViewModel(
     val subtitlePositionMs = effectiveSubtitleSnapshot?.positionMs ?: playbackSnapshot.activePositionMs
     val currentSubtitlePlaybackSpeed = effectiveSubtitleSnapshot?.playbackSpeed ?: playbackSnapshot.activePlaybackSpeed
 
+    val subtitleOffsets = remember { subtitleOffsetsStore.data }
+      .collectAsState(initial = emptyMap())
+      .value
+    val subtitleOffsetMs = subtitleOffsets.subtitleOffsetMs(
+      subtitleOffsetKey(book.id, subtitleChapterId ?: book.currentChapter.id),
+    )
     LaunchedEffect(
       playbackSnapshot.activeChapter?.id,
       subtitlePositionMs,
       subtitleCues,
       repeatSentenceEnabled.value,
+      subtitleOffsetMs,
     ) {
       val subtitleChapterId = subtitlePlaybackSnapshot?.chapterId ?: return@LaunchedEffect
       updateRepeatSentenceLoop(
@@ -207,6 +217,7 @@ class BookPlayViewModel(
         positionMs = subtitlePositionMs,
         isPlaying = playbackSnapshot.activeIsPlaying,
         chapterId = subtitleChapterId,
+        offsetMs = subtitleOffsetMs,
       )
     }
 
@@ -231,6 +242,7 @@ class BookPlayViewModel(
     val hasMoreThanOneChapter = book.chapters.sumOf { it.chapterMarks.count() } > 1
     val subtitlePanelViewState = subtitleCues.toSubtitlePanelViewState(
       positionMs = subtitlePositionMs,
+      offsetMs = subtitleOffsetMs,
       currentPlaybackSpeed = currentSubtitlePlaybackSpeed,
       repeatSentenceEnabled = repeatSentenceEnabled.value,
       playbackMode = playbackMode,
@@ -485,8 +497,10 @@ class BookPlayViewModel(
       val chapterId = activeSubtitleChapterId
         ?: activePlaybackChapterId
         ?: book.currentChapter.id
+      val offsetMs = subtitleOffsetsStore.data.first()
+        .subtitleOffsetMs(subtitleOffsetKey(book.id, chapterId))
       player.setPosition(
-        time = (cueStartMs - SUBTITLE_SEEK_PRE_ROLL_MS).coerceAtLeast(0),
+        time = (cueStartMs + offsetMs - SUBTITLE_SEEK_PRE_ROLL_MS).coerceAtLeast(0),
         id = chapterId,
       )
     }
@@ -510,6 +524,31 @@ class BookPlayViewModel(
     scope.launch {
       starredSubtitleCueKeysStore.updateData { keys -> keys.toggleSubtitleCueStar(starKey) }
     }
+  }
+
+  fun onSubtitleOffsetChange(deltaMs: Long) {
+    scope.launch {
+      val key = currentSubtitleOffsetKey() ?: return@launch
+      subtitleOffsetsStore.updateData { offsets ->
+        val updated = adjustSubtitleOffset(offsets.subtitleOffsetMs(key), deltaMs)
+        if (updated == 0L) offsets - key else offsets + (key to updated)
+      }
+    }
+  }
+
+  fun onSubtitleOffsetReset() {
+    scope.launch {
+      val key = currentSubtitleOffsetKey() ?: return@launch
+      subtitleOffsetsStore.updateData { offsets -> offsets - key }
+    }
+  }
+
+  private suspend fun currentSubtitleOffsetKey(): String? {
+    val book = currentBook() ?: return null
+    val chapterId = activeSubtitleChapterId
+      ?: activePlaybackChapterId
+      ?: book.currentChapter.id
+    return subtitleOffsetKey(book.id, chapterId)
   }
 
   fun refreshSubtitles() {
@@ -557,6 +596,7 @@ class BookPlayViewModel(
     positionMs: Long,
     isPlaying: Boolean,
     chapterId: ChapterId,
+    offsetMs: Long,
   ) {
     if (cues.isEmpty()) {
       repeatSentenceEnabled.value = false
@@ -565,7 +605,8 @@ class BookPlayViewModel(
       resetRepeatLoopCrossingState()
       return
     }
-    val activeCueIndex = cues.activeCueIndex(positionMs)
+    val subtitleTimeMs = positionMs - offsetMs
+    val activeCueIndex = cues.activeCueIndex(subtitleTimeMs)
     val selectedCue = selectedSubtitleCueStartMs.value
       ?.let { selectedStartMs -> cues.firstOrNull { it.startMs == selectedStartMs } }
 
@@ -577,8 +618,8 @@ class BookPlayViewModel(
 
     val effectiveCue = if (
       selectedCue != null &&
-      positionMs >= (selectedCue.startMs - SUBTITLE_SEEK_PRE_ROLL_MS).coerceAtLeast(0) &&
-      positionMs <= selectedCue.endMs
+      subtitleTimeMs >= (selectedCue.startMs - SUBTITLE_SEEK_PRE_ROLL_MS).coerceAtLeast(0) &&
+      subtitleTimeMs <= selectedCue.endMs
     ) {
       selectedCue
     } else {
@@ -596,7 +637,7 @@ class BookPlayViewModel(
     if (!isPlaying) {
       repeatLoopPreviousWasPlaying = false
       repeatLoopPreviousCueStartMs = effectiveCue.startMs
-      repeatLoopPreviousPositionMs = positionMs
+      repeatLoopPreviousPositionMs = subtitleTimeMs
       return
     }
 
@@ -604,12 +645,12 @@ class BookPlayViewModel(
     val crossedLoopThreshold = repeatLoopPreviousWasPlaying &&
       repeatLoopPreviousCueStartMs == effectiveCue.startMs &&
       repeatLoopPreviousPositionMs?.let { previousPositionMs ->
-        previousPositionMs < loopThresholdMs && positionMs >= loopThresholdMs
+        previousPositionMs < loopThresholdMs && subtitleTimeMs >= loopThresholdMs
       } == true
 
     repeatLoopPreviousWasPlaying = true
     repeatLoopPreviousCueStartMs = effectiveCue.startMs
-    repeatLoopPreviousPositionMs = positionMs
+    repeatLoopPreviousPositionMs = subtitleTimeMs
 
     if (!crossedLoopThreshold) {
       loopSeekPendingForCueStartMs = null
@@ -620,7 +661,7 @@ class BookPlayViewModel(
 
     loopSeekPendingForCueStartMs = effectiveCue.startMs
     player.setPosition(
-      time = (effectiveCue.startMs - SUBTITLE_SEEK_PRE_ROLL_MS).coerceAtLeast(0),
+      time = (effectiveCue.startMs + offsetMs - SUBTITLE_SEEK_PRE_ROLL_MS).coerceAtLeast(0),
       id = chapterId,
     )
   }
@@ -645,6 +686,7 @@ private fun SleepTimerState.toViewState(): BookPlayViewState.SleepTimerViewState
 
 private fun List<SubtitleCue>.toSubtitlePanelViewState(
   positionMs: Long,
+  offsetMs: Long,
   currentPlaybackSpeed: Float,
   repeatSentenceEnabled: Boolean,
   playbackMode: PlaybackMode,
@@ -655,12 +697,13 @@ private fun List<SubtitleCue>.toSubtitlePanelViewState(
 ): BookPlayViewState.SubtitlePanelViewState? {
   if (isEmpty()) return null
 
-  val activeIndex = activeCueIndex(positionMs)
+  val activeIndex = activeCueIndex(positionMs - offsetMs)
   return BookPlayViewState.SubtitlePanelViewState(
     visible = true,
     repeatSentenceEnabled = repeatSentenceEnabled,
     playbackMode = playbackMode,
     activeIndex = activeIndex,
+    offsetMs = offsetMs,
     speedOptions = SUBTITLE_PLAYBACK_SPEEDS.map { speed ->
       BookPlayViewState.SubtitlePanelViewState.SpeedOption(
         speed = speed,

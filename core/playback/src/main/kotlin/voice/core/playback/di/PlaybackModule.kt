@@ -20,11 +20,13 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import voice.core.featureflag.FeatureFlag
 import voice.core.featureflag.Media3AudioOffloadFeatureFlagQualifier
+import voice.core.featureflag.Mp3IndexSeekingFeatureFlagQualifier
 import voice.core.playback.misc.VolumeGain
 import voice.core.playback.notification.MainActivityIntentProvider
 import voice.core.playback.player.DurationInconsistenciesUpdater
 import voice.core.playback.player.OnlyAudioRenderersFactory
 import voice.core.playback.player.VoicePlayer
+import voice.core.playback.player.mp3ExtractorFlags
 import voice.core.playback.player.onAudioSessionIdChanged
 import voice.core.playback.playstate.PlayStateDelegatingListener
 import voice.core.playback.playstate.PositionUpdater
@@ -37,10 +39,14 @@ interface PlaybackModule {
 
   @Provides
   @SingleIn(PlaybackScope::class)
-  fun mediaSourceFactory(context: Context): MediaSource.Factory {
+  fun mediaSourceFactory(
+    context: Context,
+    @Mp3IndexSeekingFeatureFlagQualifier mp3IndexSeekingFeatureFlag: FeatureFlag<Boolean>,
+  ): MediaSource.Factory {
     val dataSourceFactory = DefaultDataSource.Factory(context)
     val extractorsFactory = DefaultExtractorsFactory()
       .setConstantBitrateSeekingEnabled(true)
+      .setMp3ExtractorFlags(mp3ExtractorFlags(indexSeekingEnabled = mp3IndexSeekingFeatureFlag.get()))
     return ProgressiveMediaSource.Factory(dataSourceFactory, extractorsFactory)
   }
 

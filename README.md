@@ -14,6 +14,7 @@ Built for subtitle listening practice:
 - Tap a subtitle to re-align playback from that sentence
 - Highlight the current subtitle line while listening
 - Star lines for review and practice
+- Nudge subtitle sync per chapter in 0.1 s steps when a subtitle file is slightly off; the offset is remembered
 - Use Voice's original playback modes: sequential play, single-track repeat, shuffle, and folder repeat
 - Keep offline audiobook playback when no subtitles are available
 
@@ -25,8 +26,8 @@ Recommended workflow:
 
 Known limitations:
 
-- Clicking a subtitle re-aligns playback from that sentence, but it does not globally re-time the entire subtitle file.
-- Subtitle sync is most reliable on short clips; longer audiobook files are more likely to drift during extended practice sessions.
+- Clicking a subtitle re-aligns playback from that sentence; for a global shift, use the per-chapter sync nudge on the subtitle screen.
+- Subtitle sync is most reliable on short clips; longer VBR MP3 files are more likely to drift during extended practice sessions. An experimental sample-accurate MP3 seeking mode (`mp3_index_seeking` feature flag, rolling out gradually) addresses this.
 - The app keeps Voice's original audiobook behavior when subtitles are absent.
 
 ## UI Preview

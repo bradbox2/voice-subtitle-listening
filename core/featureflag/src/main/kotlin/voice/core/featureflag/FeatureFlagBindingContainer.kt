@@ -78,6 +78,20 @@ interface FeatureFlagBindingContainer {
   @Binds
   @IntoSet
   fun bindMedia3AudioOffloadFeatureFlag(@Media3AudioOffloadFeatureFlagQualifier flag: FeatureFlag<Boolean>): FeatureFlag<*>
+
+  @Provides
+  @SingleIn(AppScope::class)
+  @Mp3IndexSeekingFeatureFlagQualifier
+  fun mp3IndexSeekingFeatureFlag(factory: FeatureFlagFactory): FeatureFlag<Boolean> {
+    return factory.boolean(
+      key = "mp3_index_seeking",
+      description = "Uses sample-accurate MP3 index seeking to keep subtitles aligned on long files.",
+    )
+  }
+
+  @Binds
+  @IntoSet
+  fun bindMp3IndexSeekingFeatureFlag(@Mp3IndexSeekingFeatureFlagQualifier flag: FeatureFlag<Boolean>): FeatureFlag<*>
 }
 
 @Qualifier
@@ -94,3 +108,6 @@ annotation class ExperimentalPlaybackPersistenceQualifier
 
 @Qualifier
 annotation class Media3AudioOffloadFeatureFlagQualifier
+
+@Qualifier
+annotation class Mp3IndexSeekingFeatureFlagQualifier
