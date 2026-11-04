@@ -56,7 +56,12 @@
 
 ## 四、同步上游的方法
 
-本 fork 最早是上游 `2269db925` 的压缩快照，后来在上游 `4ef7fa716`（2026-11-02）之上重新移植为分支 `subtitle-on-upstream`，现在和上游**有共同历史**，可以直接：
+本 fork 最早是上游 `2269db925` 的压缩快照，2026-11 在上游 `4ef7fa716`（2026-11-02）之上重新移植，现在 `main` 和上游**有共同历史**，可以直接合并。
+旧 fork 的历史保存在远程分支 `archive/fork-2026-05`、`archive/old-local-main`、`archive/fork-branding`，只作备份，不再开发。
+
+本地需要添加上游远程（只需一次）：`git remote add upstream https://github.com/PaulWoitaschek/Voice.git`，并把 upstream 的 push 关掉：`git remote set-url --push upstream DISABLED`。
+
+
 
 ```bash
 git fetch upstream
