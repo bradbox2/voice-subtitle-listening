@@ -10,6 +10,11 @@ concurrency:
   group: ci-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
+# the JUnit report creates a check run, which the default token of a fork may not do
+permissions:
+  contents: read
+  checks: write
+
 jobs:
   lint:
     runs-on: ubuntu-latest

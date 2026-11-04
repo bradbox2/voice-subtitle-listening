@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="playback.subtitles.toggle">字幕</string>
+    <string name="playback.subtitles.tools">练习工具</string>
+    <string name="playback.subtitles.repeat">单句循环</string>
+    <string name="playback.subtitles.star">收藏句子</string>
+    <string name="playback.subtitles.unstar">取消收藏</string>
+    <string name="playback.subtitles.sync_earlier">字幕提前</string>
+    <string name="playback.subtitles.sync_later">字幕延后</string>
+    <string name="playback.subtitles.sync">同步 %1$s</string>
+    <string name="playback.mode.sequential">顺序</string>
+    <string name="playback.mode.single_track_loop">单曲</string>
+    <string name="playback.mode.shuffle">随机</string>
+    <string name="playback.mode.folder_loop">全部</string>
+    <string name="playback.error.file_missing">文件找不到，可能已被移动或删除：%1$s</string>
+    <string name="playback.error.unplayable">无法播放《%1$s》。</string>
+    <string name="study.title">学习统计</string>
+    <string name="study.today">今天</string>
+    <string name="study.total">累计</string>
+    <string name="study.export">导出 CSV</string>
+    <string name="study.exported">已导出</string>
+    <string name="study.empty">还没有学习记录。播放音频时会自动计时。</string>
+    <string name="study.last">最近 %1$s</string>
+    <string name="study.time.hours_minutes">%1$d 小时 %2$d 分钟</string>
+    <string name="study.time.minutes">%1$d 分钟</string>
+    <plurals name="study.plays">
+        <item quantity="other">播完 %d 次</item>
+    </plurals>
+    <string name="study.view.folders">按文件夹</string>
+    <string name="study.view.month">按月</string>
+    <string name="study.month.previous">上个月</string>
+    <string name="study.month.next">下个月</string>
+    <string name="study.day.empty">这一天没有学习记录。</string>
+    <string name="study.time.minutes_short">%1$d分</string>
+    <plurals name="study.month.summary">
+        <item quantity="other">%1$s，学习 %2$d 天</item>
+    </plurals>
+    <string name="study.time.less_than_minute">不到 1 分钟</string>
+</resources>

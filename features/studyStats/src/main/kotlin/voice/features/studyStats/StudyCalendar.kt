@@ -26,6 +26,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
@@ -36,7 +37,6 @@ import java.time.format.DateTimeFormatter
 import java.time.format.FormatStyle
 import java.time.format.TextStyle
 import java.time.temporal.WeekFields
-import java.util.Locale
 import voice.core.strings.R as StringsR
 import voice.core.studystats.StudyDay
 import voice.core.studystats.StudyEntry
@@ -74,103 +74,105 @@ internal fun StudyCalendar(
   onMonthChange: (YearMonth) -> Unit,
   onDayClick: (LocalDate) -> Unit,
 ) {
-  val locale = Locale.getDefault()
+  val locale = LocalConfiguration.current.locales[0]
   val firstDayOfWeek = WeekFields.of(locale).firstDayOfWeek
   val maxMillis = days.values.maxOfOrNull { it.millis } ?: 0L
   val colors = MaterialTheme.colorScheme
-  Card(shape = RoundedCornerShape(20.dp)) {
-    Column(Modifier.padding(12.dp)) {
-      Row(verticalAlignment = Alignment.CenterVertically) {
-        IconButton(onClick = { onMonthChange(month.minusMonths(1)) }) {
-          Icon(
-            VoiceIcons.ArrowBack,
-            contentDescription = stringResource(StringsR.string.study_month_previous),
-          )
+  Column {
+    Card(shape = RoundedCornerShape(20.dp)) {
+      Column(Modifier.padding(12.dp)) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+          IconButton(onClick = { onMonthChange(month.minusMonths(1)) }) {
+            Icon(
+              VoiceIcons.ArrowBack,
+              contentDescription = stringResource(StringsR.string.study_month_previous),
+            )
+          }
+          Column(Modifier.weight(1F), horizontalAlignment = Alignment.CenterHorizontally) {
+            Text(
+              text = month.format(DateTimeFormatter.ofPattern("LLLL yyyy", locale)),
+              style = MaterialTheme.typography.titleMedium,
+            )
+            Text(
+              text =
+                pluralStringResource(
+                  StringsR.plurals.study_month_summary,
+                  days.size,
+                  studyTime(days.values.sumOf { it.millis }),
+                  days.size,
+                ),
+              style = MaterialTheme.typography.bodySmall,
+            )
+          }
+          IconButton(onClick = { onMonthChange(month.plusMonths(1)) }) {
+            Icon(
+              VoiceIcons.ArrowBack,
+              contentDescription = stringResource(StringsR.string.study_month_next),
+              modifier = Modifier.rotate(180F),
+            )
+          }
         }
-        Column(Modifier.weight(1F), horizontalAlignment = Alignment.CenterHorizontally) {
-          Text(
-            text = month.format(DateTimeFormatter.ofPattern("LLLL yyyy", locale)),
-            style = MaterialTheme.typography.titleMedium,
-          )
-          Text(
-            text =
-              pluralStringResource(
-                StringsR.plurals.study_month_summary,
-                days.size,
-                studyTime(days.values.sumOf { it.millis }),
-                days.size,
-              ),
-            style = MaterialTheme.typography.bodySmall,
-          )
-        }
-        IconButton(onClick = { onMonthChange(month.plusMonths(1)) }) {
-          Icon(
-            VoiceIcons.ArrowBack,
-            contentDescription = stringResource(StringsR.string.study_month_next),
-            modifier = Modifier.rotate(180F),
-          )
-        }
-      }
-      Row(Modifier.fillMaxWidth()) {
-        repeat(7) { offset ->
-          Text(
-            text = firstDayOfWeek.plus(offset.toLong()).getDisplayName(TextStyle.NARROW, locale),
-            style = MaterialTheme.typography.labelSmall,
-            textAlign = TextAlign.Center,
-            modifier = Modifier.weight(1F).padding(vertical = 4.dp),
-          )
-        }
-      }
-      val leadingBlanks = (month.atDay(1).dayOfWeek.value - firstDayOfWeek.value + 7) % 7
-      val cells = leadingBlanks + month.lengthOfMonth()
-      repeat((cells + 6) / 7) { week ->
         Row(Modifier.fillMaxWidth()) {
-          repeat(7) { weekday ->
-            val dayOfMonth = week * 7 + weekday - leadingBlanks + 1
-            if (dayOfMonth !in 1..month.lengthOfMonth()) {
-              Spacer(Modifier.weight(1F))
-            } else {
-              val date = month.atDay(dayOfMonth)
-              val day = days[date]
-              val intensity =
-                if (day == null || maxMillis == 0L) 0F else 0.25F + 0.75F * day.millis / maxMillis
-              Box(
-                modifier =
-                  Modifier.weight(1F)
-                    .aspectRatio(1F)
-                    .padding(2.dp)
-                    .clip(RoundedCornerShape(10.dp))
-                    .background(
-                      if (intensity > 0F) colors.primary.copy(alpha = intensity)
-                      else Color.Transparent,
-                    )
-                    .then(
-                      if (date == selected) {
-                        Modifier.border(2.dp, colors.onSurface, RoundedCornerShape(10.dp))
-                      } else {
-                        Modifier
-                      },
-                    )
-                    .clickable { onDayClick(date) },
-                contentAlignment = Alignment.Center,
-              ) {
-                val textColor = if (intensity > 0.5F) colors.onPrimary else colors.onSurface
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                  Text(
-                    text = dayOfMonth.toString(),
-                    style = MaterialTheme.typography.labelLarge,
-                    color = textColor,
-                  )
-                  if (day != null) {
+          repeat(7) { offset ->
+            Text(
+              text = firstDayOfWeek.plus(offset.toLong()).getDisplayName(TextStyle.NARROW, locale),
+              style = MaterialTheme.typography.labelSmall,
+              textAlign = TextAlign.Center,
+              modifier = Modifier.weight(1F).padding(vertical = 4.dp),
+            )
+          }
+        }
+        val leadingBlanks = (month.atDay(1).dayOfWeek.value - firstDayOfWeek.value + 7) % 7
+        val cells = leadingBlanks + month.lengthOfMonth()
+        repeat((cells + 6) / 7) { week ->
+          Row(Modifier.fillMaxWidth()) {
+            repeat(7) { weekday ->
+              val dayOfMonth = week * 7 + weekday - leadingBlanks + 1
+              if (dayOfMonth !in 1..month.lengthOfMonth()) {
+                Spacer(Modifier.weight(1F))
+              } else {
+                val date = month.atDay(dayOfMonth)
+                val day = days[date]
+                val intensity =
+                  if (day == null || maxMillis == 0L) 0F else 0.25F + 0.75F * day.millis / maxMillis
+                Box(
+                  modifier =
+                    Modifier.weight(1F)
+                      .aspectRatio(1F)
+                      .padding(2.dp)
+                      .clip(RoundedCornerShape(10.dp))
+                      .background(
+                        if (intensity > 0F) colors.primary.copy(alpha = intensity)
+                        else Color.Transparent,
+                      )
+                      .then(
+                        if (date == selected) {
+                          Modifier.border(2.dp, colors.onSurface, RoundedCornerShape(10.dp))
+                        } else {
+                          Modifier
+                        },
+                      )
+                      .clickable { onDayClick(date) },
+                  contentAlignment = Alignment.Center,
+                ) {
+                  val textColor = if (intensity > 0.5F) colors.onPrimary else colors.onSurface
+                  Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     Text(
-                      text =
-                        stringResource(
-                          StringsR.string.study_time_minutes_short,
-                          day.millis / 60_000,
-                        ),
-                      style = MaterialTheme.typography.labelSmall,
+                      text = dayOfMonth.toString(),
+                      style = MaterialTheme.typography.labelLarge,
                       color = textColor,
                     )
+                    if (day != null) {
+                      Text(
+                        text =
+                          stringResource(
+                            StringsR.string.study_time_minutes_short,
+                            day.millis / 60_000,
+                          ),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = textColor,
+                      )
+                    }
                   }
                 }
               }
@@ -179,12 +181,13 @@ internal fun StudyCalendar(
         }
       }
     }
+    Text(
+      text =
+        selected.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.FULL).withLocale(locale)),
+      style = MaterialTheme.typography.titleMedium,
+      modifier = Modifier.padding(top = 8.dp),
+    )
   }
-  Text(
-    text = selected.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.FULL).withLocale(locale)),
-    style = MaterialTheme.typography.titleMedium,
-    modifier = Modifier.padding(top = 8.dp),
-  )
 }
 
 @Composable

@@ -101,7 +101,7 @@ fun studyNames(
 
 // + is literal in uris, URLDecoder would turn it into a space
 private fun String.decodedPath(): String =
-  URLDecoder.decode(replace("+", "%2B"), Charsets.UTF_8).trimEnd('/')
+  URLDecoder.decode(replace("+", "%2B"), "UTF-8").trimEnd('/')
 
 /** Opens in Excel with the names readable, which needs the byte order mark for UTF-8. */
 fun studyCsv(entries: List<StudyEntry>): String {

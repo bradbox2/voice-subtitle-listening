@@ -36,7 +36,7 @@ class SrtParserTest {
 
   @Test
   fun `accepts windows line endings, a byte order mark and dots before the milliseconds`() {
-    val cues = parser.parse("﻿1\r\n00:00:01.000 --> 00:00:02.000\r\nHi\r\n\r\n")
+    val cues = parser.parse(0xFEFF.toChar() + "1\r\n00:00:01.000 --> 00:00:02.000\r\nHi\r\n\r\n")
 
     assertEquals(listOf(SubtitleCue(startMs = 1_000, endMs = 2_000, text = "Hi")), cues)
   }

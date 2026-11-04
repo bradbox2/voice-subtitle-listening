@@ -82,7 +82,7 @@ object StudyStatsProvider {
 }
 
 @Composable
-fun StudyStatsScreen() {
+fun StudyStatsScreen(modifier: Modifier = Modifier) {
   val graph = remember { rootGraphAs<StudyStatsGraph>() }
   val entries = remember { graph.studyStats.entries }.collectAsState(initial = null).value
   val context = LocalContext.current
@@ -98,6 +98,7 @@ fun StudyStatsScreen() {
       }
     }
   Scaffold(
+    modifier = modifier,
     topBar = {
       TopAppBar(
         title = { Text(stringResource(StringsR.string.study_title)) },

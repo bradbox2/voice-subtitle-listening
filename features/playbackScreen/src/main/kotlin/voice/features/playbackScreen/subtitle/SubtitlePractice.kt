@@ -224,7 +224,7 @@ internal fun List<SubtitleCue>.loopCue(
 
 internal fun ChapterId.fileName(): String {
   // + is literal in uris, URLDecoder would turn it into a space
-  val decoded = URLDecoder.decode(value.replace("+", "%2B"), Charsets.UTF_8)
+  val decoded = URLDecoder.decode(value.replace("+", "%2B"), "UTF-8")
   return decoded.substringAfterLast('/').substringAfterLast(':').substringBeforeLast('.')
 }
 

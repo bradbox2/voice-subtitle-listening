@@ -16,7 +16,8 @@ internal class LocalIndexSeekingExtractorsFactory(
   private val local: ExtractorsFactory = ExtractorsFactory {
     arrayOf(
       LocalMp3Extractor(
-        Mp3Extractor.FLAG_ENABLE_INDEX_SEEKING or Mp3Extractor.FLAG_ENABLE_CONSTANT_BITRATE_SEEKING,
+        LocalMp3Extractor.FLAG_ENABLE_INDEX_SEEKING or
+          LocalMp3Extractor.FLAG_ENABLE_CONSTANT_BITRATE_SEEKING,
       ),
     )
   },

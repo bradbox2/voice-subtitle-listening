@@ -7,7 +7,7 @@ class SrtParser {
 
   fun parse(input: String): List<SubtitleCue> {
     return input
-      .removePrefix("﻿")
+      .removePrefix(BYTE_ORDER_MARK.toString())
       .replace("\r\n", "\n")
       .replace('\r', '\n')
       .split(Regex("\n\\s*\n"))
@@ -41,3 +41,5 @@ class SrtParser {
     return ((hours * 60 + minutes) * 60 + seconds) * 1000 + millis
   }
 }
+
+private val BYTE_ORDER_MARK = 0xFEFF.toChar()
