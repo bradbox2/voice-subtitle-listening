@@ -28,4 +28,11 @@ class SubtitleCueTest {
     assertNull(cues.activeCueIndex(6_000))
     assertNull(emptyList<SubtitleCue>().activeCueIndex(0))
   }
+
+  @Test
+  fun `in the pause between cues, the one just said stays`() {
+    assertEquals(1, cues.lastStartedCueIndex(4_000))
+    assertEquals(2, cues.lastStartedCueIndex(9_000))
+    assertNull(cues.lastStartedCueIndex(999))
+  }
 }

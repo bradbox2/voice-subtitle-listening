@@ -46,6 +46,27 @@ class SubtitleKeysTest {
   }
 
   @Test
+  fun `the file name tells files with the same title apart`() {
+    assertEquals(
+      expected = "S01E06-chatterbox_actors",
+      actual =
+        ChapterId(
+            "content://com.android.externalstorage.documents/tree/primary%3ADownload/document/" +
+              "primary%3ADownload%2FS0106edition%2FS01E06-chatterbox_actors.mp3",
+          )
+          .fileName(),
+    )
+    assertEquals(
+      expected = "C++ 第1课",
+      actual = ChapterId("file:///sdcard/C++%20第1课.mp3").fileName(),
+    )
+    assertEquals(
+      expected = "one",
+      actual = ChapterId("content://x/document/primary%3Aone.mp3").fileName(),
+    )
+  }
+
+  @Test
   fun `offsets show as signed seconds`() {
     assertEquals("0.0s", formatSubtitleOffset(0L))
     assertEquals("+0.3s", formatSubtitleOffset(300L))

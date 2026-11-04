@@ -5,6 +5,8 @@ import voice.core.playback.PlaybackMode
 
 @Immutable
 data class SubtitlesViewState(
+  /** Files of a book often share the title in their tags, the file name tells them apart. */
+  val fileName: String,
   val focusMode: Boolean,
   val repeatSentence: Boolean,
   val playbackMode: PlaybackMode,

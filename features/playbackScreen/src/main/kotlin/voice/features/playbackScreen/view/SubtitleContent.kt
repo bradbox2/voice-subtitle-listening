@@ -3,12 +3,16 @@
 package voice.features.playbackScreen.view
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -41,13 +45,14 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import java.text.NumberFormat
 import kotlin.math.abs
 import kotlin.time.Duration
@@ -109,7 +114,7 @@ internal fun SubtitleContent(
   ) {
     if (viewState.showPreviousNextButtons) {
       ChapterSwitcher(
-        chapterName = viewState.chapterName,
+        chapterName = subtitles.fileName,
         chapterNumber = viewState.chapterNumber,
         chapterCount = viewState.chapterCount,
         onSkipToPrevious = onSkipToPrevious,
@@ -118,7 +123,7 @@ internal fun SubtitleContent(
       )
     } else {
       Text(
-        text = viewState.title,
+        text = subtitles.fileName,
         style = MaterialTheme.typography.titleMedium,
         textAlign = TextAlign.Center,
         maxLines = 1,
@@ -250,32 +255,44 @@ private fun SubtitleList(
   onStarClick: (String) -> Unit,
   modifier: Modifier = Modifier,
 ) {
-  val listState = rememberLazyListState()
-  val focusIndex = subtitles.activeIndex ?: subtitles.selectedIndex
-  LaunchedEffect(focusIndex) {
-    // don't fight the listener scrolling to look something up
-    if (focusIndex != null && !listState.isScrollInProgress) {
-      listState.animateScrollToItem((focusIndex - 3).coerceAtLeast(0))
+  BoxWithConstraints(modifier) {
+    val listState = rememberLazyListState()
+    val focusIndex = subtitles.activeIndex ?: subtitles.selectedIndex
+    // The playing sentence always comes to rest at the same height, with a line or two before it,
+    // so the eyes don't have to search for it. The top padding is that height, as a scrolled to
+    // item rests right below it.
+    val anchor = maxHeight * 0.2F
+    LaunchedEffect(focusIndex) {
+      // don't fight the listener scrolling to look something up
+      if (focusIndex != null && !listState.isScrollInProgress) {
+        listState.animateScrollToItem(focusIndex)
+      }
     }
-  }
-  LazyColumn(
-    state = listState,
-    modifier = modifier,
-    contentPadding = PaddingValues(vertical = 16.dp),
-  ) {
-    itemsIndexed(items = subtitles.cues, key = { _, cue -> cue.starKey }) { index, cue ->
-      SubtitleRow(
-        cue = cue,
-        active = index == subtitles.activeIndex,
-        selected = index == subtitles.selectedIndex,
-        distance = focusIndex?.let { abs(index - it) },
-        onClick = { onCueClick(cue.startMs) },
-        onStarClick = { onStarClick(cue.starKey) },
-      )
+    LazyColumn(
+      state = listState,
+      modifier = Modifier.fillMaxSize(),
+      // lets the last sentences reach the anchor as well
+      contentPadding = PaddingValues(top = anchor, bottom = maxHeight - anchor),
+    ) {
+      itemsIndexed(items = subtitles.cues, key = { _, cue -> cue.starKey }) { index, cue ->
+        SubtitleRow(
+          cue = cue,
+          active = index == subtitles.activeIndex,
+          selected = index == subtitles.selectedIndex,
+          distance = focusIndex?.let { abs(index - it) },
+          onClick = { onCueClick(cue.startMs) },
+          onStarClick = { onStarClick(cue.starKey) },
+        )
+      }
     }
   }
 }
 
+/**
+ * Every line is laid out with the same size and weight, so no line wraps differently when the
+ * playing sentence changes and the list below doesn't jump. The playing sentence only looks bigger
+ * by drawing it scaled, which the row padding has room for.
+ */
 @Composable
 private fun SubtitleRow(
   cue: SubtitlesViewState.Cue,
@@ -291,10 +308,19 @@ private fun SubtitleRow(
       0 -> 1F
       1 -> 0.84F
       2 -> 0.68F
-      else -> 0.45F
+      else -> 0.5F
     }
+  val scale by animateFloatAsState(if (active) ACTIVE_SCALE else 1F, label = "scale")
   Row(
-    modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp)).clickable(onClick = onClick),
+    modifier =
+      Modifier.fillMaxWidth()
+        .graphicsLayer {
+          scaleX = scale
+          scaleY = scale
+        }
+        .clip(RoundedCornerShape(12.dp))
+        .background(if (active) colors.primary.copy(alpha = 0.12F) else Color.Transparent)
+        .clickable(onClick = onClick),
     verticalAlignment = Alignment.CenterVertically,
   ) {
     Text(
@@ -305,15 +331,10 @@ private fun SubtitleRow(
           selected -> colors.secondary
           else -> colors.onSurface.copy(alpha = alpha)
         },
-      style =
-        when (distance) {
-          0 -> MaterialTheme.typography.titleLarge
-          1 -> MaterialTheme.typography.titleMedium
-          else -> MaterialTheme.typography.bodyLarge
-        },
-      fontWeight = if (distance == 0) FontWeight.SemiBold else FontWeight.Normal,
+      // large, as listeners read along at arm's length
+      style = MaterialTheme.typography.titleLarge.copy(fontSize = 18.sp, lineHeight = 25.sp),
       textAlign = TextAlign.Center,
-      modifier = Modifier.weight(1F).padding(start = 40.dp, top = 9.dp, bottom = 9.dp),
+      modifier = Modifier.weight(1F).padding(start = 40.dp, top = 12.dp, bottom = 12.dp),
     )
     if (selected || cue.starred) {
       IconButton(onClick = onStarClick, modifier = Modifier.size(40.dp)) {
@@ -328,7 +349,7 @@ private fun SubtitleRow(
         )
       }
     } else {
-      Row(Modifier.size(40.dp)) {}
+      Spacer(Modifier.size(40.dp))
     }
   }
 }
@@ -358,3 +379,4 @@ private fun PlaybackModeButton(
 }
 
 private val StarColor = Color(0xFFFFD54F)
+private const val ACTIVE_SCALE = 1.06F

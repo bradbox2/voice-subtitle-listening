@@ -7,6 +7,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import dev.zacsweers.metro.Inject
+import java.net.URLDecoder
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -20,6 +21,7 @@ import voice.core.playback.PlayerController
 import voice.core.subtitle.SubtitleCue
 import voice.core.subtitle.SubtitleLoader
 import voice.core.subtitle.activeCueIndex
+import voice.core.subtitle.lastStartedCueIndex
 
 /**
  * Subtitle positions are in the time of the subtitle file. The audio is that plus the listener's
@@ -99,11 +101,12 @@ class SubtitlePractice(
       }
     val selectedStartMs = loopCue?.startMs ?: selectedCueStartMs.value
     return SubtitlesViewState(
+      fileName = chapterId.fileName(),
       focusMode = focusMode,
       repeatSentence = repeat,
       playbackMode = playbackMode,
       cues = cueViewStates,
-      activeIndex = cues.activeCueIndex(subtitleTimeMs),
+      activeIndex = cues.lastStartedCueIndex(subtitleTimeMs),
       selectedIndex =
         selectedStartMs
           ?.let { start -> cues.indexOfFirst { it.startMs == start } }
@@ -217,6 +220,12 @@ internal fun List<SubtitleCue>.loopCue(
     return selected
   }
   return activeCueIndex(subtitleTimeMs)?.let(::get)
+}
+
+internal fun ChapterId.fileName(): String {
+  // + is literal in uris, URLDecoder would turn it into a space
+  val decoded = URLDecoder.decode(value.replace("+", "%2B"), Charsets.UTF_8)
+  return decoded.substringAfterLast('/').substringAfterLast(':').substringBeforeLast('.')
 }
 
 private const val LOOP_FOLLOW_TOLERANCE_MS = 1_000L

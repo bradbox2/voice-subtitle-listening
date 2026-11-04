@@ -71,6 +71,9 @@ internal fun BookPlayView(
             showChapters = viewState.showPreviousNextButtons,
             subtitlesShown = viewState.subtitles?.focusMode,
             onSubtitlesClick = subtitleActions.onFocusModeClick,
+            sleepTimerState =
+              viewState.sleepTimerState.takeIf { viewState.subtitles?.focusMode == true },
+            onSleepTimerClick = onSleepTimerClick,
             onCloseClick = onCloseClick,
             onChaptersClick = onCurrentChapterClick,
             onBookActionsClick = onBookActionsClick,
