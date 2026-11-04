@@ -1,12 +1,16 @@
 package voice.core.playback.stats
 
+import androidx.media3.common.C
 import androidx.media3.common.MediaItem
+import androidx.media3.common.PlaybackParameters
 import androidx.media3.common.Player
+import androidx.media3.common.Timeline
 import dev.zacsweers.metro.AppScope
 import dev.zacsweers.metro.Inject
 import dev.zacsweers.metro.SingleIn
 import java.time.Clock
 import java.time.LocalDate
+import kotlin.math.roundToLong
 import kotlin.time.Duration.Companion.minutes
 import kotlin.time.Duration.Companion.seconds
 import kotlinx.coroutines.CoroutineScope
@@ -25,6 +29,9 @@ import voice.core.studystats.studyNames
 /**
  * Records how long each file plays per day, for the study stats of the subtitle fork. Attached to
  * the player that holds one media item per file, so a file repeating or ending is a transition.
+ *
+ * A file counts as played when most of its audio was heard since it last ended, so skipping to the
+ * end doesn't count, while pauses and other speeds don't matter.
  */
 @SingleIn(AppScope::class)
 @Inject
@@ -35,6 +42,9 @@ class StudyTimeRecorder(
 ) {
 
   private var current: StudyNames? = null
+  private var durationMillis = 0L
+  private var heardAudioMillis = 0L
+  private var speed = 1F
   private var playing = false
   private var countedUntil = 0L
   private var checkpoints: Job? = null
@@ -47,9 +57,22 @@ class StudyTimeRecorder(
         override fun onIsPlayingChanged(isPlaying: Boolean) {
           if (isPlaying) {
             player.currentMediaItem?.studyNames()?.let(::playing)
+            speedChanged(player.playbackParameters.speed)
+            player.duration.takeIf { it != C.TIME_UNSET }?.let(::durationKnown)
           } else {
             stopped()
           }
+        }
+
+        override fun onPlaybackParametersChanged(playbackParameters: PlaybackParameters) {
+          speedChanged(playbackParameters.speed)
+        }
+
+        override fun onTimelineChanged(
+          timeline: Timeline,
+          reason: Int,
+        ) {
+          player.duration.takeIf { it != C.TIME_UNSET }?.let(::durationKnown)
         }
 
         override fun onMediaItemTransition(
@@ -65,6 +88,7 @@ class StudyTimeRecorder(
           if (player.isPlaying) {
             mediaItem?.studyNames()?.let(::playing)
           }
+          player.duration.takeIf { it != C.TIME_UNSET }?.let(::durationKnown)
         }
 
         override fun onPlaybackStateChanged(playbackState: Int) {
@@ -79,7 +103,11 @@ class StudyTimeRecorder(
   internal fun playing(names: StudyNames) {
     if (playing && current == names) return
     count()
-    current = names
+    if (current != names) {
+      current = names
+      durationMillis = 0
+      heardAudioMillis = 0
+    }
     if (playing) return
     playing = true
     countedUntil = clock.millis()
@@ -101,9 +129,22 @@ class StudyTimeRecorder(
     save()
   }
 
+  internal fun durationKnown(durationMillis: Long) {
+    this.durationMillis = durationMillis
+  }
+
+  internal fun speedChanged(speed: Float) {
+    // what played so far played at the old speed
+    count()
+    this.speed = speed
+  }
+
   internal fun ended(names: StudyNames) {
     count()
-    pending.getOrPut(today() to names) { Pending() }.plays++
+    if (durationMillis > 0 && heardAudioMillis >= durationMillis * HEARD_TO_COUNT_AS_PLAYED) {
+      pending.getOrPut(today() to names) { Pending() }.plays++
+    }
+    heardAudioMillis = 0
     save()
   }
 
@@ -114,6 +155,7 @@ class StudyTimeRecorder(
     // the clock can be changed, so only count what fits in between two checkpoints
     val elapsed = (now - countedUntil).coerceIn(0, MAX_COUNTED_AT_ONCE)
     pending.getOrPut(today() to names) { Pending() }.listenedMillis += elapsed
+    heardAudioMillis += (elapsed * speed).roundToLong()
     countedUntil = now
   }
 
@@ -140,6 +182,7 @@ class StudyTimeRecorder(
   private companion object {
     val CHECKPOINT_INTERVAL = 30.seconds
     val MAX_COUNTED_AT_ONCE = 2.minutes.inWholeMilliseconds
+    const val HEARD_TO_COUNT_AS_PLAYED = 0.9
   }
 }
 

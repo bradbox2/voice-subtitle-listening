@@ -70,33 +70,76 @@ class StudyTimeRecorderTest {
   }
 
   @Test
-  fun `each file gets its own time, and plays to the end count`() = scope.runTest {
-    recorder.playing(lesson)
-    advanceTimeBy(5.minutes)
-    recorder.ended(lesson)
-    recorder.playing(other)
-    advanceTimeBy(1.minutes)
-    recorder.stopped()
-    runCurrent()
+  fun `each file gets its own time, and a file listened to the end counts as played`() =
+    scope.runTest {
+      recorder.playing(lesson)
+      recorder.durationKnown(5.minutes.inWholeMilliseconds)
+      advanceTimeBy(5.minutes)
+      recorder.ended(lesson)
+      recorder.playing(other)
+      advanceTimeBy(1.minutes)
+      recorder.stopped()
+      runCurrent()
 
-    assertEquals(
-      listOf(entry(lesson, listened = 300_000, plays = 1), entry(other, listened = 60_000)),
-      store.value.value,
-    )
-  }
+      assertEquals(
+        listOf(entry(lesson, listened = 300_000, plays = 1), entry(other, listened = 60_000)),
+        store.value.value,
+      )
+    }
 
   @Test
-  fun `a file repeating counts every time it ends`() = scope.runTest {
+  fun `a file repeating counts every time it was listened to`() = scope.runTest {
     recorder.playing(lesson)
+    recorder.durationKnown(1.minutes.inWholeMilliseconds)
     advanceTimeBy(1.minutes)
     recorder.ended(lesson)
-    recorder.playing(lesson)
     advanceTimeBy(1.minutes)
     recorder.ended(lesson)
     recorder.stopped()
     runCurrent()
 
     assertEquals(listOf(entry(lesson, listened = 120_000, plays = 2)), store.value.value)
+  }
+
+  @Test
+  fun `skipping to the end doesn't count as played`() = scope.runTest {
+    recorder.playing(lesson)
+    recorder.durationKnown(10.minutes.inWholeMilliseconds)
+    advanceTimeBy(15.seconds)
+    recorder.ended(lesson)
+    recorder.stopped()
+    runCurrent()
+
+    assertEquals(listOf(entry(lesson, listened = 15_000)), store.value.value)
+  }
+
+  @Test
+  fun `faster playback finishes the file in less time`() = scope.runTest {
+    recorder.playing(lesson)
+    recorder.durationKnown(10.minutes.inWholeMilliseconds)
+    recorder.speedChanged(1.25F)
+    advanceTimeBy(8.minutes)
+    recorder.ended(lesson)
+    recorder.stopped()
+    runCurrent()
+
+    assertEquals(listOf(entry(lesson, listened = 480_000, plays = 1)), store.value.value)
+  }
+
+  @Test
+  fun `pauses don't break a play, as long as the file was heard`() = scope.runTest {
+    recorder.playing(lesson)
+    recorder.durationKnown(2.minutes.inWholeMilliseconds)
+    advanceTimeBy(1.minutes)
+    recorder.stopped()
+    advanceTimeBy(1.hours)
+    recorder.playing(lesson)
+    advanceTimeBy(1.minutes)
+    recorder.ended(lesson)
+    recorder.stopped()
+    runCurrent()
+
+    assertEquals(listOf(entry(lesson, listened = 120_000, plays = 1)), store.value.value)
   }
 
   private fun entry(

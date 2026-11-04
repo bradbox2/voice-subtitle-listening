@@ -493,4 +493,14 @@
     <plurals name="study.plays">
         <item quantity="other">播完 %d 次</item>
     </plurals>
+    <string name="study.view.folders">按文件夹</string>
+    <string name="study.view.month">按月</string>
+    <string name="study.month.previous">上个月</string>
+    <string name="study.month.next">下个月</string>
+    <string name="study.day.empty">这一天没有学习记录。</string>
+    <string name="study.time.minutes_short">%1$d分</string>
+    <plurals name="study.month.summary">
+        <item quantity="other">%1$s，学习 %2$d 天</item>
+    </plurals>
+    <string name="study.time.less_than_minute">不到 1 分钟</string>
 </resources>

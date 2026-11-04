@@ -48,6 +48,7 @@ import dev.zacsweers.metro.ContributesTo
 import dev.zacsweers.metro.IntoSet
 import dev.zacsweers.metro.Provides
 import java.time.LocalDate
+import java.time.YearMonth
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
@@ -57,6 +58,7 @@ import voice.core.strings.R as StringsR
 import voice.core.studystats.StudyOverview
 import voice.core.studystats.StudyStats
 import voice.core.studystats.studyCsv
+import voice.core.studystats.studyMonth
 import voice.core.studystats.studyOverview
 import voice.core.ui.icons.VoiceIcons
 import voice.navigation.Destination
@@ -123,6 +125,10 @@ fun StudyStatsScreen() {
   ) { contentPadding ->
     if (entries == null) return@Scaffold
     val overview = remember(entries) { studyOverview(entries, LocalDate.now()) }
+    var byMonth by rememberSaveable { mutableStateOf(false) }
+    var month by rememberSaveable { mutableStateOf(YearMonth.now()) }
+    var selectedDay by rememberSaveable { mutableStateOf(LocalDate.now()) }
+    val days = remember(entries, month) { studyMonth(entries, month) }
     LazyColumn(
       contentPadding =
         PaddingValues(
@@ -134,16 +140,41 @@ fun StudyStatsScreen() {
       verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
       item { Totals(overview) }
-      if (overview.folders.isEmpty()) {
+      item { ViewSwitch(byMonth = byMonth, onByMonthChange = { byMonth = it }) }
+      if (byMonth) {
         item {
-          Text(
-            text = stringResource(StringsR.string.study_empty),
-            style = MaterialTheme.typography.bodyLarge,
-            modifier = Modifier.padding(vertical = 24.dp),
+          StudyCalendar(
+            days = days,
+            month = month,
+            selected = selectedDay,
+            onMonthChange = { month = it },
+            onDayClick = { selectedDay = it },
           )
         }
+        val day = days[selectedDay]
+        if (day == null) {
+          item {
+            Text(
+              text = stringResource(StringsR.string.study_day_empty),
+              style = MaterialTheme.typography.bodyLarge,
+              modifier = Modifier.padding(vertical = 12.dp),
+            )
+          }
+        } else {
+          items(day.files, key = { it.folder + "/" + it.file }) { entry -> DayFileRow(entry) }
+        }
+      } else {
+        if (overview.folders.isEmpty()) {
+          item {
+            Text(
+              text = stringResource(StringsR.string.study_empty),
+              style = MaterialTheme.typography.bodyLarge,
+              modifier = Modifier.padding(vertical = 24.dp),
+            )
+          }
+        }
+        items(overview.folders, key = { it.name }) { folder -> FolderCard(folder) }
       }
-      items(overview.folders, key = { it.name }) { folder -> FolderCard(folder) }
     }
   }
 }
@@ -225,7 +256,7 @@ private fun FolderCard(folder: StudyOverview.Folder) {
 }
 
 @Composable
-private fun details(
+internal fun details(
   plays: Int,
   lastDate: String,
 ): String {
@@ -235,7 +266,12 @@ private fun details(
 }
 
 @Composable
-private fun studyTime(millis: Long): String {
+internal fun playsText(plays: Int): String =
+  pluralStringResource(StringsR.plurals.study_plays, plays, plays)
+
+@Composable
+internal fun studyTime(millis: Long): String {
+  if (millis in 1..<60_000) return stringResource(StringsR.string.study_time_less_than_minute)
   val minutes = millis / 60_000
   return if (minutes >= 60) {
     stringResource(StringsR.string.study_time_hours_minutes, minutes / 60, minutes % 60)

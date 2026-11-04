@@ -920,4 +920,23 @@
         <item quantity="one">%d play</item>
         <item quantity="other">%d plays</item>
     </plurals>
+    <!-- Switch on the study time screen that lists the time per folder and file. -->
+    <string name="study.view.folders">Folders</string>
+    <!-- Switch on the study time screen that shows a calendar of a month. -->
+    <string name="study.view.month">Month</string>
+    <!-- Read out by screen readers for the button that shows the month before. -->
+    <string name="study.month.previous">Previous month</string>
+    <!-- Read out by screen readers for the button that shows the month after. -->
+    <string name="study.month.next">Next month</string>
+    <!-- Shown below the calendar for a day without study time. -->
+    <string name="study.day.empty">Nothing studied on this day.</string>
+    <!-- Minutes studied on a day, in a small calendar cell. Keep it as short as possible. -->
+    <string name="study.time.minutes_short">%1$dm</string>
+    <!-- Below the month of the calendar: the study time of the month and on how many days. %1$s is a time like "3 h 20 min", %2$d the number of days. -->
+    <plurals name="study.month.summary">
+        <item quantity="one">%1$s on %2$d day</item>
+        <item quantity="other">%1$s on %2$d days</item>
+    </plurals>
+    <!-- A study time of less than a minute. -->
+    <string name="study.time.less_than_minute">&lt; 1 min</string>
 </resources>
