@@ -31,6 +31,7 @@ import voice.core.playback.notification.MainActivityIntentProvider
 import voice.core.playback.player.DurationInconsistenciesUpdater
 import voice.core.playback.player.LocalIndexSeekingExtractorsFactory
 import voice.core.playback.player.OnlyAudioRenderersFactory
+import voice.core.playback.player.PlaybackErrorToast
 import voice.core.playback.player.VoicePlayer
 import voice.core.playback.player.onAudioSessionIdChanged
 import voice.core.playback.playstate.PlayStateDelegatingListener
@@ -69,6 +70,8 @@ object PlaybackModule {
     automaticPauseRecorder: AutomaticPauseRecorder,
     listeningSessionRecorder: ListeningSessionRecorder,
     media3AudioOffloadFeatureFlag: Media3AudioOffloadFeatureFlag,
+    playbackErrorToast: PlaybackErrorToast,
+    scope: CoroutineScope,
   ): ExoPlayer {
     val audioAttributes =
       AudioAttributes.Builder()
@@ -103,6 +106,7 @@ object PlaybackModule {
         durationInconsistenciesUpdater.attachTo(player)
         automaticPauseRecorder.attachTo(player)
         listeningSessionRecorder.attachTo(player)
+        playbackErrorToast.attachTo(player, scope)
         player.onAudioSessionIdChanged {
           volumeGain.audioSessionId = it
         }

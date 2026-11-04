@@ -479,4 +479,6 @@
     <string name="playback.mode.single_track_loop">單曲</string>
     <string name="playback.mode.shuffle">隨機</string>
     <string name="playback.mode.folder_loop">全部</string>
+    <string name="playback.error.file_missing">檔案找不到，可能已被移動或刪除：%1$s</string>
+    <string name="playback.error.unplayable">無法播放《%1$s》。</string>
 </resources>

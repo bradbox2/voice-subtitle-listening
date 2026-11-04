@@ -893,4 +893,8 @@
     <string name="playback.mode.shuffle">Shuf</string>
     <!-- Playback mode: repeats all files of the book. Shown on a small button, keep it short. -->
     <string name="playback.mode.folder_loop">All</string>
+    <!-- Shown when a file of the book can't be found to play. %1$s is the file name. Keep the file name last, long names get cut off. -->
+    <string name="playback.error.file_missing">File not found, it may have been moved or deleted: %1$s</string>
+    <!-- Shown when a file of the book exists but can't be played. %1$s is the file name. -->
+    <string name="playback.error.unplayable">Can\'t play %1$s.</string>
 </resources>
