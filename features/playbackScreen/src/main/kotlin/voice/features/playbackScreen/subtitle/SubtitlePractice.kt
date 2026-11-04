@@ -138,10 +138,14 @@ class SubtitlePractice(
     }
   }
 
+  /**
+   * Plays from the sentence, also when paused, as a listener who scrolled to a sentence taps it to
+   * hear it. Other jumps in Voice leave the playing state alone.
+   */
   fun onCueClick(startMs: Long) {
     val current = current ?: return
     selectedCueStartMs.value = startMs
-    player.setPosition((startMs + current.offsetMs).coerceAtLeast(0), current.chapterId)
+    player.playFrom((startMs + current.offsetMs).coerceAtLeast(0), current.chapterId)
   }
 
   fun toggleRepeatSentence() {

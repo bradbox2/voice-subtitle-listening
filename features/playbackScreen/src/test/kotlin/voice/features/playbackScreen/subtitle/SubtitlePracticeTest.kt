@@ -43,6 +43,7 @@ class SubtitlePracticeTest {
   private val player =
     mockk<PlayerController> {
       every { setPosition(any(), any(), any(), any()) } just Runs
+      every { playFrom(any(), any()) } just Runs
       every { setLoopRange(any(), any(), any()) } just Runs
       every { clearLoopRange() } just Runs
     }
@@ -76,14 +77,15 @@ class SubtitlePracticeTest {
   }
 
   @Test
-  fun `tapping a cue plays it from its start in the audio`() = scope.runTest {
+  fun `tapping a cue plays from its start in the audio, also when it was paused`() = scope.runTest {
     offsets.updateData { mapOf(subtitleOffsetKey(bookId, chapterId) to -300L) }
     viewStates {
       awaitLoaded()
 
       practice.onCueClick(2_000)
 
-      verify { player.setPosition(1_700, chapterId) }
+      verify { player.playFrom(1_700, chapterId) }
+      verify(exactly = 0) { player.setPosition(any(), any(), any(), any()) }
       assertEquals(expected = 1, actual = awaitLoaded().selectedIndex)
     }
   }

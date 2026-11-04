@@ -21,6 +21,12 @@ interface PlayerController {
     source: ListeningEvent.Source = ListeningEvent.Source.App,
   )
 
+  /** Jumps there and starts playing, also when it was paused. */
+  fun playFrom(
+    time: Long,
+    id: ChapterId,
+  )
+
   fun pauseIfCurrentBookDifferentFrom(
     id: BookId,
     source: ListeningEvent.Source = ListeningEvent.Source.App,

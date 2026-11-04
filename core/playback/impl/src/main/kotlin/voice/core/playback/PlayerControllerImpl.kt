@@ -74,18 +74,36 @@ class PlayerControllerImpl(
     id: ChapterId,
     type: ListeningEvent.Type,
     source: ListeningEvent.Source,
+  ) = executeAfterPrepare { controller -> controller.seekToPosition(time, id, type, source) }
+
+  override fun playFrom(
+    time: Long,
+    id: ChapterId,
   ) = executeAfterPrepare { controller ->
-    val bookId = currentBookStoreId.data.first() ?: return@executeAfterPrepare
-    val book = bookRepository.get(bookId) ?: return@executeAfterPrepare
+    // in one coroutine, as a separate play could start before the seek and be heard from the old
+    // position
+    controller.seekToPosition(time, id, ListeningEvent.Type.Seek, ListeningEvent.Source.App)
+    if (!controller.playWhenReady) {
+      controller.record(ListeningEvent.Type.Play, ListeningEvent.Source.App)
+    }
+    controller.play()
+  }
+
+  private suspend fun MediaController.seekToPosition(
+    time: Long,
+    id: ChapterId,
+    type: ListeningEvent.Type,
+    source: ListeningEvent.Source,
+  ) {
+    val bookId = currentBookStoreId.data.first() ?: return
+    val book = bookRepository.get(bookId) ?: return
     val playbackItem =
       book.playbackItemForPosition(
         chapterId = id,
         positionInChapterMs = time,
-      )
-    if (playbackItem != null) {
-      controller.record(type, source, to = PlaybackPosition(bookId, id, time))
-      controller.seekTo(playbackItem.index, playbackItem.positionInMediaItem(time))
-    }
+      ) ?: return
+    record(type, source, to = PlaybackPosition(bookId, id, time))
+    seekTo(playbackItem.index, playbackItem.positionInMediaItem(time))
   }
 
   override fun pauseIfCurrentBookDifferentFrom(
