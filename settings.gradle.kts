@@ -97,6 +97,8 @@ include(":core:search")
 
 include(":core:subtitle")
 
+include(":core:studystats")
+
 include(":core:sleeptimer:api")
 
 include(":core:sleeptimer:impl")
@@ -122,6 +124,8 @@ include(":features:review:noop")
 include(":features:review:play")
 
 include(":features:settings")
+
+include(":features:studyStats")
 
 include(":features:support:api")
 

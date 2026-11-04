@@ -166,6 +166,8 @@ dependencies {
   implementation(projects.features.bookOverview)
   implementation(projects.core.search)
   implementation(projects.core.subtitle)
+  implementation(projects.core.studystats)
+  implementation(projects.features.studyStats)
   implementation(projects.features.cover)
   implementation(projects.core.documentfile)
   implementation(projects.features.onboarding)

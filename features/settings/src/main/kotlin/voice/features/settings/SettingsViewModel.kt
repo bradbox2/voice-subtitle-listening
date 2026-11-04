@@ -384,6 +384,10 @@ class SettingsViewModel(
   override fun openDeveloperMenu() {
     navigator.goTo(Destination.DeveloperSettings)
   }
+
+  override fun openStudyStats() {
+    navigator.goTo(Destination.StudyStats)
+  }
 }
 
 internal val SEEK_TIME_RANGE = 3..60

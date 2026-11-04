@@ -41,6 +41,7 @@
 | 每章 offset | DataStore 文件 `subtitleOffsets`，key 由 `subtitleOffsetKey` 生成 | 同上 |
 | 字幕专注模式 | DataStore 文件 `subtitleFocusModeEnabled` | — |
 | 播放模式 | DataStore 文件 `playbackMode`，枚举名 `Sequential/SingleTrackLoop/Shuffle/FolderLoop` | 枚举名不能改 |
+| 学习统计 | DataStore 文件 `studyStats`，每条是 日期 × 文件夹名 × 文件名（**按名字，不用 id/hash**：同名文件替换成新版本后时长接着累计） | 字段名不能改，否则旧记录读不出来 |
 | 包名 | debug 构建 `de.ph1b.audiobook.debug`（`app/build.gradle.kts` 里的 `applicationIdSuffix`） | 手机上装的就是这个包名，改了就变成另一个 App，书库不会带过去 |
 
 ## 三、fork 新增的其他功能（同步上游时注意冲突）
@@ -52,6 +53,7 @@
 - 字幕页顶栏有睡眠定时器按钮（封面模式的底部工具栏在字幕页不显示）；字幕/封面切换：字幕页显示"图片"图标，封面页显示文字按钮"字幕"。
 - 播放模式作用在**文件**上（直接设在被包装的 ExoPlayer 上），`ChapterMarkPlayer` 对上层报告不循环、不随机，避免上一章/下一章逻辑出错。
 - "本章结束"定时器 + 单句循环：句尾即视为章末，暂停。
+- 学习统计：`core:studystats`（数据、汇总、CSV）+ `StudyTimeRecorder`（挂在 `PlaybackModule.player` 上，只在真正出声时计时，每 30 s 存一次）+ `features:studyStats`（页面，入口在设置 → 书库）。播完次数 = 文件自然播到结尾、单曲循环转回开头、自动跳到下一个文件；单句循环不算。CSV 开头带 BOM，Excel 才能正确显示中文。不使用上游的 `listening_session` 表，避免同步上游时的数据库迁移冲突。
 - 播放失败时弹 Toast（`PlaybackErrorToast`，挂在 `PlaybackModule.player` 上）：本地文件不存在 → "文件找不到"，存在但播不了 → "无法播放"；流媒体不提示（上游有自己的"不可用"处理）。文件名放在句末，因为 Toast 最多两行会截断。上游原本只记日志、不提示；若上游以后自己加了播放错误提示，删掉这个，避免重复。
 
 ## 四、同步上游的方法

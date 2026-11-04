@@ -481,4 +481,16 @@
     <string name="playback.mode.folder_loop">全部</string>
     <string name="playback.error.file_missing">文件找不到，可能已被移动或删除：%1$s</string>
     <string name="playback.error.unplayable">无法播放《%1$s》。</string>
+    <string name="study.title">学习统计</string>
+    <string name="study.today">今天</string>
+    <string name="study.total">累计</string>
+    <string name="study.export">导出 CSV</string>
+    <string name="study.exported">已导出</string>
+    <string name="study.empty">还没有学习记录。播放音频时会自动计时。</string>
+    <string name="study.last">最近 %1$s</string>
+    <string name="study.time.hours_minutes">%1$d 小时 %2$d 分钟</string>
+    <string name="study.time.minutes">%1$d 分钟</string>
+    <plurals name="study.plays">
+        <item quantity="other">播完 %d 次</item>
+    </plurals>
 </resources>

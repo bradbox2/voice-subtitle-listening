@@ -39,6 +39,7 @@ import voice.core.playback.playstate.PositionUpdater
 import voice.core.playback.session.LibrarySessionCallback
 import voice.core.playback.session.PlaybackService
 import voice.core.playback.stats.ListeningSessionRecorder
+import voice.core.playback.stats.StudyTimeRecorder
 import voice.core.strings.R as StringsR
 
 @BindingContainer
@@ -71,6 +72,7 @@ object PlaybackModule {
     listeningSessionRecorder: ListeningSessionRecorder,
     media3AudioOffloadFeatureFlag: Media3AudioOffloadFeatureFlag,
     playbackErrorToast: PlaybackErrorToast,
+    studyTimeRecorder: StudyTimeRecorder,
     scope: CoroutineScope,
   ): ExoPlayer {
     val audioAttributes =
@@ -107,6 +109,7 @@ object PlaybackModule {
         automaticPauseRecorder.attachTo(player)
         listeningSessionRecorder.attachTo(player)
         playbackErrorToast.attachTo(player, scope)
+        studyTimeRecorder.attachTo(player)
         player.onAudioSessionIdChanged {
           volumeGain.audioSessionId = it
         }

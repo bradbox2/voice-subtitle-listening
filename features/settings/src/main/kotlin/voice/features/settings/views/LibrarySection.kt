@@ -79,6 +79,7 @@ internal fun LibrarySection(
   onAudiobookshelfClick: () -> Unit,
   onUseGridChange: (Boolean) -> Unit,
   modifier: Modifier = Modifier,
+  onStudyStatsClick: () -> Unit = {},
 ) {
   val colors = MaterialTheme.colorScheme
   // the tertiary container is a light tone in the dark theme, which glares as a whole island
@@ -115,6 +116,18 @@ internal fun LibrarySection(
     if (showAudiobookshelf) {
       AudiobookshelfRow(audiobookshelfServer, onAudiobookshelfClick)
     }
+    IslandRow(
+      title = stringResource(StringsR.string.study_title),
+      onClick = onStudyStatsClick,
+      leading = {
+        ShapedIcon(
+          icon = VoiceIcons.Analytics,
+          shape = MaterialShapes.Cookie4Sided,
+          containerColor = MaterialTheme.colorScheme.tertiary,
+          contentColor = MaterialTheme.colorScheme.onTertiary,
+        )
+      },
+    )
     Spacer(Modifier.height(12.dp))
     Row(
       modifier = Modifier.selectableGroup().padding(horizontal = 16.dp),

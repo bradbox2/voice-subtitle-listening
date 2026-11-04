@@ -53,6 +53,8 @@ interface SettingsListener {
 
   fun openDeveloperMenu()
 
+  fun openStudyStats()
+
   companion object {
     fun noop() =
       object : SettingsListener {
@@ -103,6 +105,8 @@ interface SettingsListener {
         override fun onAppVersionClick() {}
 
         override fun openDeveloperMenu() {}
+
+        override fun openStudyStats() {}
       }
   }
 }

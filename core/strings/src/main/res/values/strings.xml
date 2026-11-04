@@ -897,4 +897,27 @@
     <string name="playback.error.file_missing">File not found, it may have been moved or deleted: %1$s</string>
     <!-- Shown when a file of the book exists but can't be played. %1$s is the file name. -->
     <string name="playback.error.unplayable">Can\'t play %1$s.</string>
+    <!-- Title of the screen with the study time per folder and file. Also the row in the settings that opens it. -->
+    <string name="study.title">Study time</string>
+    <!-- Label of the study time of today. -->
+    <string name="study.today">Today</string>
+    <!-- Label of the study time of all days. -->
+    <string name="study.total">Total</string>
+    <!-- Button that saves the study time as a CSV file for spreadsheets. -->
+    <string name="study.export">Export as CSV</string>
+    <!-- Shown after the study time was saved as a CSV file. -->
+    <string name="study.exported">Exported</string>
+    <!-- Shown on the study time screen before anything was played. -->
+    <string name="study.empty">Nothing studied yet. Time counts while audio plays.</string>
+    <!-- When a folder or file was last studied. %1$s is a date like 2026-11-04. -->
+    <string name="study.last">last %1$s</string>
+    <!-- A study time of an hour or more, like 1 h 23 min. -->
+    <string name="study.time.hours_minutes">%1$d h %2$d min</string>
+    <!-- A study time below an hour, like 23 min. -->
+    <string name="study.time.minutes">%1$d min</string>
+    <!-- How often a file was played to its end, like "3 plays". -->
+    <plurals name="study.plays">
+        <item quantity="one">%d play</item>
+        <item quantity="other">%d plays</item>
+    </plurals>
 </resources>
