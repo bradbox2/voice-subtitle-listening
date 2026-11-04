@@ -305,10 +305,9 @@ private fun SubtitleRow(
   val colors = MaterialTheme.colorScheme
   val alpha =
     when (distance) {
-      0 -> 1F
-      1 -> 0.84F
-      2 -> 0.68F
-      else -> 0.5F
+      1 -> 0.7F
+      2 -> 0.55F
+      else -> 0.45F
     }
   val scale by animateFloatAsState(if (active) ACTIVE_SCALE else 1F, label = "scale")
   Row(
@@ -319,7 +318,9 @@ private fun SubtitleRow(
           scaleY = scale
         }
         .clip(RoundedCornerShape(12.dp))
-        .background(if (active) colors.primary.copy(alpha = 0.12F) else Color.Transparent)
+        // the strongest pair of the theme, so the playing sentence stands out in light and dark
+        // themes. A tint of primary with primary text lost against the plain lines in dark mode.
+        .background(if (active) colors.primary else Color.Transparent)
         .clickable(onClick = onClick),
     verticalAlignment = Alignment.CenterVertically,
   ) {
@@ -327,7 +328,7 @@ private fun SubtitleRow(
       text = cue.text,
       color =
         when {
-          active -> colors.primary
+          active -> colors.onPrimary
           selected -> colors.secondary
           else -> colors.onSurface.copy(alpha = alpha)
         },
