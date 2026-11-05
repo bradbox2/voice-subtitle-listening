@@ -57,6 +57,8 @@ import voice.core.common.rootGraphAs
 import voice.core.strings.R as StringsR
 import voice.core.studystats.StudyOverview
 import voice.core.studystats.StudyStats
+import voice.core.studystats.StudySync
+import voice.core.studystats.StudySyncResult
 import voice.core.studystats.studyCsv
 import voice.core.studystats.studyMonth
 import voice.core.studystats.studyOverview
@@ -68,6 +70,7 @@ import voice.navigation.Navigator
 @ContributesTo(AppScope::class)
 interface StudyStatsGraph {
   val studyStats: StudyStats
+  val studySync: StudySync
   val navigator: Navigator
 }
 
@@ -88,6 +91,7 @@ fun StudyStatsScreen(modifier: Modifier = Modifier) {
   val context = LocalContext.current
   val scope = rememberCoroutineScope()
   val exportedMessage = stringResource(StringsR.string.study_exported)
+  var showSync by rememberSaveable { mutableStateOf(false) }
   val export =
     rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("text/csv")) { uri ->
       if (uri != null) {
@@ -111,6 +115,20 @@ fun StudyStatsScreen(modifier: Modifier = Modifier) {
           }
         },
         actions = {
+          IconButton(onClick = { showSync = true }) {
+            val result = graph.studySync.lastResult.collectAsState().value
+            Icon(
+              imageVector =
+                when (result) {
+                  is StudySyncResult.Done -> VoiceIcons.CloudDone
+                  null,
+                  StudySyncResult.NotConfigured,
+                  StudySyncResult.NothingToSend -> VoiceIcons.Cloud
+                  else -> VoiceIcons.CloudOff
+                },
+              contentDescription = stringResource(StringsR.string.study_sync_title),
+            )
+          }
           IconButton(
             onClick = { export.launch("voice-study-${LocalDate.now()}.csv") },
             enabled = !entries.isNullOrEmpty(),
@@ -124,6 +142,7 @@ fun StudyStatsScreen(modifier: Modifier = Modifier) {
       )
     },
   ) { contentPadding ->
+    if (showSync) StudySyncDialog(sync = graph.studySync, onDismiss = { showSync = false })
     if (entries == null) return@Scaffold
     val overview = remember(entries) { studyOverview(entries, LocalDate.now()) }
     var byMonth by rememberSaveable { mutableStateOf(false) }

@@ -36,4 +36,20 @@
         <item quantity="other">%1$s，学习 %2$d 天</item>
     </plurals>
     <string name="study.time.less_than_minute">不到 1 分钟</string>
+    <string name="study.sync.title">同步到云端</string>
+    <string name="study.sync.address">服务器地址</string>
+    <string name="study.sync.token">令牌</string>
+    <string name="study.sync.http_warning">这个地址是明文 http，令牌会不加密地发送。</string>
+    <string name="study.sync.now">立即同步</string>
+    <string name="study.sync.last">上次同步：%1$s</string>
+    <string name="study.sync.done">已同步</string>
+    <string name="study.sync.done_last">已同步，最后一天 %1$s</string>
+    <string name="study.sync.not_configured">请填写地址和令牌。</string>
+    <string name="study.sync.nothing">最近 7 天没有学习记录可发送。</string>
+    <string name="study.sync.bad_address">地址必须以 http:// 或 https:// 开头。</string>
+    <string name="study.sync.bad_token">服务器不接受这个令牌。</string>
+    <string name="study.sync.rejected">服务器拒绝了这些数据。</string>
+    <string name="study.sync.server_token_missing">服务器还没有设置令牌。</string>
+    <string name="study.sync.no_connection">连不上服务器。</string>
+    <string name="study.sync.server_error">服务器返回了错误（%1$d）。</string>
 </resources>

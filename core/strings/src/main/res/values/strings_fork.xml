@@ -75,4 +75,36 @@
     </plurals>
     <!-- A study time of less than a minute. -->
     <string name="study.time.less_than_minute">&lt; 1 min</string>
+    <!-- Title of the dialog, and the button on the study time screen, that sends the study time of the last week to the listener's own server. -->
+    <string name="study.sync.title">Sync to the cloud</string>
+    <!-- Field in the study time sync dialog for the address of the server. -->
+    <string name="study.sync.address">Server address</string>
+    <!-- Field in the study time sync dialog for the secret that lets the app write to the server. -->
+    <string name="study.sync.token">Token</string>
+    <!-- Warning below the address field when it starts with http://. -->
+    <string name="study.sync.http_warning">This address is plain http, so the token is sent unencrypted.</string>
+    <!-- Button in the study time sync dialog that saves the address and sends the study time. -->
+    <string name="study.sync.now">Sync now</string>
+    <!-- Below the fields of the study time sync dialog. %1$s is a date and time. -->
+    <string name="study.sync.last">Last synced: %1$s</string>
+    <!-- Result of the study time sync when the server took the data. -->
+    <string name="study.sync.done">Synced</string>
+    <!-- Result of the study time sync when the server took the data. %1$s is the last date it has, like 2026-11-05. -->
+    <string name="study.sync.done_last">Synced, last day %1$s</string>
+    <!-- Result of the study time sync without an address or a token. -->
+    <string name="study.sync.not_configured">Enter the address and the token.</string>
+    <!-- Result of the study time sync when there is nothing to send. -->
+    <string name="study.sync.nothing">No study time in the last 7 days to send.</string>
+    <!-- Result of the study time sync for an address that is not a web address. -->
+    <string name="study.sync.bad_address">The address has to start with http:// or https://.</string>
+    <!-- Result of the study time sync when the server answers 401. -->
+    <string name="study.sync.bad_token">The server doesn\'t accept this token.</string>
+    <!-- Result of the study time sync when the server answers 422. -->
+    <string name="study.sync.rejected">The server refused the data.</string>
+    <!-- Result of the study time sync when the server answers 503. -->
+    <string name="study.sync.server_token_missing">The server has no token set up yet.</string>
+    <!-- Result of the study time sync without a connection to the server. -->
+    <string name="study.sync.no_connection">Can\'t reach the server.</string>
+    <!-- Result of the study time sync for any other answer. %1$d is the HTTP status code. -->
+    <string name="study.sync.server_error">The server answered with an error (%1$d).</string>
 </resources>

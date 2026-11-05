@@ -49,6 +49,11 @@
 - `core:subtitle` 模块：`.srt` 解析（UTF-8 / GB18030、BOM、`.` 或 `,` 毫秒）、同文件夹查找（扩展名大小写不敏感）。日志不记录路径、文件名、字幕文本（上游 AGENTS.md 要求）。
 - 字幕页 `view/SubtitleContent.kt`：底部 `[播放模式] ↶ ▶ ↷ [工具]`，工具行（单句循环 / 倍速 / Sync）默认收起；播放时保持亮屏。
 - 字幕列表**不许按当前句改变字号或字重**（旧版这么做，导致长句换行变化、下面的句子上下跳）。所有行同一排版（Literata 18sp），当前句只用颜色、底色和 `graphicsLayer` 视觉放大 6%（不改排版）。当前句配色用 `primary` 实心底 + `onPrimary` 字，深色、浅色模式下都必须是最显眼的一行（浅蓝底配蓝字在深色模式下会输给旁边的白字，改动配色后两种模式都要截图检查：`adb shell cmd uimode night yes|no`，测完 `auto`）。当前句固定停在列表高度 20% 处（顶部留白 = 20%，底部留白 = 80%）。句间空隙保持上一句高亮（`lastStartedCueIndex`）。
+- 学习时间同步到自己的服务器（GoalSifter / TTC 的 `POST /api/v1/study-sync/days`，接口说明在另一个仓库：`openclaw-bot/bots/goalsifter_v3/docs/operations/study-sync-api.md`）：`core/studystats/.../StudySync*.kt`。规则：只发最近 7 天；每天带上该天**全部**文件（服务器按天整体替换，所以重复发送安全）；`item_key` = `文件夹/文件名`；单个文件秒数 ≤ 86400，一天合计 ≤ 86400，播放次数 ≤ 10000，日期不能比中国时间晚一天以上（任何一条不合格服务器会整个拒绝，所以发送前就裁掉）；失败不重试，下次同步再发。入口：学习统计页右上角云朵（地址、令牌、"立即同步"）。自动同步：App 回到前台（3 分钟内最多一次）、听完一段后学习时间 45 秒不再变化。
+  - **地址和令牌只存在手机的 DataStore（`studySync`），不要写进代码或提交**，并且已经在 `backup_rules.xml` / `data_extraction_rules.xml` 里排除出云备份。
+  - 令牌在 http 下明文传输（服务器暂时没有 TLS），对话框里有提示；服务器上了 https 就把地址改成 https://。
+  - 不要在日志里记录地址、令牌、服务器返回的内容（上游 AGENTS.md 的规定），只记结果类型。
+  - 本机测试办法（不碰真实服务器）：在电脑上起一个假服务器，按接口文档校验请求，`adb reverse tcp:8099 tcp:8099`，地址填 `http://127.0.0.1:8099/api/v1/study-sync/days`。手机的拼音输入法会吞掉 `adb input text`，改用 `adb push` + `run-as cp` 把 `{"url":..,"token":..}` 直接写进 `files/datastore/studySync`。
 - 单击字幕 = 跳到这句**并播放**（暂停时开始播放，播放中继续播放），用 `PlayerController.playFrom`，在同一个协程里先跳转再播放；分成 `setPosition` + `play` 两次调用，`play` 会抢在跳转前，先从旧位置响一下。上游其他地方的跳转（章节、进度条、书签、历史）都只改位置、不改播放状态，这是有意区别。
 - 字幕页标题显示**文件名**（`ChapterId.fileName()`），因为同一文件夹的文件常常标签标题相同。
 - 字幕页顶栏有睡眠定时器按钮（封面模式的底部工具栏在字幕页不显示）；字幕/封面切换：字幕页显示"图片"图标，封面页显示文字按钮"字幕"。

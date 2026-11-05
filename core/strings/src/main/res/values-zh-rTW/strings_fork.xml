@@ -36,4 +36,20 @@
         <item quantity="other">%1$s，學習 %2$d 天</item>
     </plurals>
     <string name="study.time.less_than_minute">不到 1 分鐘</string>
+    <string name="study.sync.title">同步到雲端</string>
+    <string name="study.sync.address">伺服器位址</string>
+    <string name="study.sync.token">權杖</string>
+    <string name="study.sync.http_warning">這個位址是明文 http，權杖會不加密地傳送。</string>
+    <string name="study.sync.now">立即同步</string>
+    <string name="study.sync.last">上次同步：%1$s</string>
+    <string name="study.sync.done">已同步</string>
+    <string name="study.sync.done_last">已同步，最後一天 %1$s</string>
+    <string name="study.sync.not_configured">請填寫位址和權杖。</string>
+    <string name="study.sync.nothing">最近 7 天沒有學習記錄可傳送。</string>
+    <string name="study.sync.bad_address">位址必須以 http:// 或 https:// 開頭。</string>
+    <string name="study.sync.bad_token">伺服器不接受這個權杖。</string>
+    <string name="study.sync.rejected">伺服器拒絕了這些資料。</string>
+    <string name="study.sync.server_token_missing">伺服器還沒有設定權杖。</string>
+    <string name="study.sync.no_connection">連不上伺服器。</string>
+    <string name="study.sync.server_error">伺服器回傳了錯誤（%1$d）。</string>
 </resources>
