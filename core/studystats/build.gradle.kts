@@ -7,6 +7,8 @@ plugins {
 dependencies {
   api(projects.core.data.api)
   api(projects.core.datastore)
+  implementation(projects.core.common)
   implementation(projects.core.initializer)
+  implementation(projects.core.subtitle)
   implementation(projects.core.logging.api)
 }

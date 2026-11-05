@@ -42,6 +42,7 @@ class StudySyncPayloadTest {
           itemKey = "S0106edition/S01E06-chatterbox_actors.mp3",
           title = "S01E06-chatterbox_actors.mp3",
           folder = "S0106edition",
+          category = "audiobook",
           seconds = 11_640,
           plays = 9,
         ),
@@ -62,7 +63,7 @@ class StudySyncPayloadTest {
     val day = json.getValue("days").jsonArray.single().jsonObject
     assertEquals("2026-11-05", day.getValue("date").jsonPrimitive.content)
     val item = day.getValue("items").jsonArray.single() as JsonObject
-    assertEquals(setOf("item_key", "title", "folder", "seconds", "plays"), item.keys)
+    assertEquals(setOf("item_key", "title", "folder", "category", "seconds", "plays"), item.keys)
   }
 
   @Test
@@ -120,6 +121,37 @@ class StudySyncPayloadTest {
 
     assertEquals(listOf(10_000), request.days.single().items.map { it.plays })
     assertEquals(listOf("F/a.mp3"), request.days.single().items.map { it.itemKey })
+  }
+
+  @Test
+  fun `each item says what its folder is, as the listener or the detection labelled it`() {
+    val request =
+      studySyncRequest(
+        entries =
+          listOf(
+            StudyEntry("2026-11-05", "S0106edition", "a.mp3", 60_000, 0),
+            StudyEntry("2026-11-05", "Dune", "ch1.mp3", 50_000, 0),
+            StudyEntry("2026-11-05", "21 Day Meditation", "day1.mp3", 40_000, 0),
+          ),
+        today = today,
+        chinaToday = chinaToday,
+        deviceId = "SM-S9180",
+        appVersion = "1.0.0",
+        labels =
+          mapOf(
+            "S0106edition" to FolderCategory(StudyCategory.Language),
+            "Dune" to FolderCategory(StudyCategory.Meditation, manual = true),
+          ),
+      )!!
+
+    assertEquals(
+      mapOf(
+        "S0106edition/a.mp3" to "language",
+        "Dune/ch1.mp3" to "meditation",
+        "21 Day Meditation/day1.mp3" to "meditation",
+      ),
+      request.days.single().items.associate { it.itemKey to it.category },
+    )
   }
 
   @Test

@@ -53,4 +53,12 @@
     <string name="study.sync.no_connection">連不上伺服器。</string>
     <string name="study.sync.server_error">伺服器回傳了錯誤（%1$d）。</string>
     <string name="study.sync.settings">位址和權杖</string>
+    <string name="study.category.language">學外語</string>
+    <string name="study.category.audiobook">Audiobook</string>
+    <string name="study.category.meditation">冥想</string>
+    <string name="study.category.choose">%1$s 的類別</string>
+    <string name="study.category.hint">長按資料夾可以修改類別。</string>
+    <string name="study.filter.all">全部</string>
+    <string name="study.this_week">本週</string>
+    <string name="study.view.weeks">按週</string>
 </resources>

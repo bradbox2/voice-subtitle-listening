@@ -19,6 +19,10 @@ data class StudySyncItem(
   @SerialName("item_key") val itemKey: String,
   val title: String,
   val folder: String,
+  /**
+   * The [StudyCategory.id] of the folder, for the agent that sorts the study time on the server.
+   */
+  val category: String,
   val seconds: Int,
   val plays: Int,
 )
@@ -36,6 +40,7 @@ fun studySyncRequest(
   chinaToday: LocalDate,
   deviceId: String,
   appVersion: String,
+  labels: Map<String, FolderCategory> = emptyMap(),
 ): StudySyncRequest? {
   val earliest = today.minusDays(DAYS_SENT - 1L)
   val latest = chinaToday.plusDays(1)
@@ -45,7 +50,7 @@ fun studySyncRequest(
       .mapNotNull { (date, dayEntries) ->
         val day = LocalDate.parse(date)
         if (day < earliest || day > latest) return@mapNotNull null
-        val items = dayEntries.toItems()
+        val items = dayEntries.toItems(labels)
         if (items.isEmpty()) null else StudySyncDay(date, items)
       }
       .sortedBy { it.date }
@@ -56,7 +61,7 @@ fun studySyncRequest(
 fun studySyncJson(request: StudySyncRequest): String =
   Json.encodeToString(StudySyncRequest.serializer(), request)
 
-private fun List<StudyEntry>.toItems(): List<StudySyncItem> {
+private fun List<StudyEntry>.toItems(labels: Map<String, FolderCategory>): List<StudySyncItem> {
   var secondsLeft = SECONDS_PER_DAY
   return groupBy { it.folder to it.file }
     .map { (key, same) ->
@@ -65,6 +70,7 @@ private fun List<StudyEntry>.toItems(): List<StudySyncItem> {
         itemKey = "$folder/$file",
         title = file,
         folder = folder,
+        category = categoryOf(folder, labels).id,
         seconds =
           (same.sumOf { it.listenedMillis } / 1000).coerceIn(0, SECONDS_PER_DAY.toLong()).toInt(),
         plays = same.sumOf { it.plays }.coerceIn(0, MAX_PLAYS),

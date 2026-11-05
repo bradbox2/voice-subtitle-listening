@@ -104,14 +104,25 @@ private fun String.decodedPath(): String =
   URLDecoder.decode(replace("+", "%2B"), "UTF-8").trimEnd('/')
 
 /** Opens in Excel with the names readable, which needs the byte order mark for UTF-8. */
-fun studyCsv(entries: List<StudyEntry>): String {
+fun studyCsv(
+  entries: List<StudyEntry>,
+  labels: Map<String, FolderCategory> = emptyMap(),
+): String {
   return buildString {
     append(0xFEFF.toChar())
-    append("date,folder,file,minutes,plays\r\n")
+    // the category is last, so a sheet made before keeps its columns
+    append("date,folder,file,minutes,plays,category\r\n")
     entries.forEach { entry ->
       val minutes = (entry.listenedMillis / 6_000.0).roundToLong() / 10.0
       append(
-        listOf(entry.date, entry.folder.csv(), entry.file.csv(), minutes, entry.plays)
+        listOf(
+            entry.date,
+            entry.folder.csv(),
+            entry.file.csv(),
+            minutes,
+            entry.plays,
+            categoryOf(entry.folder, labels).id,
+          )
           .joinToString(","),
       )
       append("\r\n")

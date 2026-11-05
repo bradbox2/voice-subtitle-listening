@@ -109,4 +109,20 @@
     <string name="study.sync.server_error">The server answered with an error (%1$d).</string>
     <!-- Read out by screen readers for long pressing the cloud button of the study time screen, which opens the address and token of the sync. -->
     <string name="study.sync.settings">Address and token</string>
+    <!-- Category of a folder: audio the listener practices a language with. -->
+    <string name="study.category.language">Language learning</string>
+    <!-- Category of a folder: an ordinary audiobook. -->
+    <string name="study.category.audiobook">Audiobook</string>
+    <!-- Category of a folder: meditation, often with music. -->
+    <string name="study.category.meditation">Meditation</string>
+    <!-- Title of the dialog that picks the category of a folder. %1$s is the name of the folder. -->
+    <string name="study.category.choose">Category of %1$s</string>
+    <!-- Hint below the folders on the study time screen. -->
+    <string name="study.category.hint">Long press a folder to change its category.</string>
+    <!-- Filter on the study time screen that shows every category. -->
+    <string name="study.filter.all">All</string>
+    <!-- Label of the study time of the current week, from Monday. -->
+    <string name="study.this_week">This week</string>
+    <!-- Switch on the study time screen that lists the time of each week. -->
+    <string name="study.view.weeks">Weeks</string>
 </resources>

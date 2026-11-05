@@ -24,6 +24,7 @@ class StudySyncTest {
   private val sync =
     StudySync(
       stats = StudyStats(StudyStatsStore(statsStore)),
+      categories = StudyCategories(StudyCategoriesStore(MemoryStore(emptyMap()))),
       settings = StudySyncSettingsStore(settingsStore),
       transport = transport,
       device = StudySyncDevice(id = "SM-S9180", appVersion = "1.0.0"),

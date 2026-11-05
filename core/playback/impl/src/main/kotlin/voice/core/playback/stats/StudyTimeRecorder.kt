@@ -22,6 +22,7 @@ import kotlinx.coroutines.sync.withLock
 import voice.core.playback.session.bookId
 import voice.core.playback.session.realChapterId
 import voice.core.playback.session.toMediaIdOrNull
+import voice.core.studystats.StudyCategorizer
 import voice.core.studystats.StudyNames
 import voice.core.studystats.StudyStats
 import voice.core.studystats.studyNames
@@ -37,6 +38,7 @@ import voice.core.studystats.studyNames
 @Inject
 class StudyTimeRecorder(
   private val stats: StudyStats,
+  private val categorizer: StudyCategorizer,
   private val clock: Clock,
   private val scope: CoroutineScope,
 ) {
@@ -56,7 +58,7 @@ class StudyTimeRecorder(
       object : Player.Listener {
         override fun onIsPlayingChanged(isPlaying: Boolean) {
           if (isPlaying) {
-            player.currentMediaItem?.studyNames()?.let(::playing)
+            player.currentMediaItem?.let(::started)
             speedChanged(player.playbackParameters.speed)
             player.duration.takeIf { it != C.TIME_UNSET }?.let(::durationKnown)
           } else {
@@ -86,7 +88,7 @@ class StudyTimeRecorder(
             current?.let(::ended)
           }
           if (player.isPlaying) {
-            mediaItem?.studyNames()?.let(::playing)
+            mediaItem?.let(::started)
           }
           player.duration.takeIf { it != C.TIME_UNSET }?.let(::durationKnown)
         }
@@ -172,6 +174,14 @@ class StudyTimeRecorder(
     }
   }
 
+  private fun started(item: MediaItem) {
+    val mediaId = item.mediaId.toMediaIdOrNull() ?: return
+    val bookId = mediaId.bookId ?: return
+    val chapterId = mediaId.realChapterId ?: return
+    playing(studyNames(bookId, chapterId))
+    categorizer.onPlaying(bookId, chapterId)
+  }
+
   private fun today(): LocalDate = LocalDate.now(clock)
 
   private class Pending {
@@ -184,11 +194,4 @@ class StudyTimeRecorder(
     val MAX_COUNTED_AT_ONCE = 2.minutes.inWholeMilliseconds
     const val HEARD_TO_COUNT_AS_PLAYED = 0.9
   }
-}
-
-private fun MediaItem.studyNames(): StudyNames? {
-  val mediaId = mediaId.toMediaIdOrNull() ?: return null
-  val bookId = mediaId.bookId ?: return null
-  val chapterId = mediaId.realChapterId ?: return null
-  return studyNames(bookId, chapterId)
 }

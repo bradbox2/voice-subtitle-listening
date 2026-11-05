@@ -55,13 +55,16 @@ class StudyStatsTest {
       studyCsv(
         listOf(
           StudyEntry("2026-11-04", "长音频", "a, \"b\".mp3", listenedMillis = 150_000, plays = 2),
+          StudyEntry("2026-11-04", "冥想21天", "day1.mp3", listenedMillis = 600_000, plays = 0),
         ),
+        labels = mapOf("长音频" to FolderCategory(StudyCategory.Language)),
       )
 
     assertEquals(
       0xFEFF.toChar() +
-        "date,folder,file,minutes,plays\r\n" +
-        "2026-11-04,长音频,\"a, \"\"b\"\".mp3\",2.5,2\r\n",
+        "date,folder,file,minutes,plays,category\r\n" +
+        "2026-11-04,长音频,\"a, \"\"b\"\".mp3\",2.5,2,language\r\n" +
+        "2026-11-04,冥想21天,day1.mp3,10.0,0,meditation\r\n",
       csv,
     )
   }

@@ -20,11 +20,13 @@ class StudyOverviewTest {
       )
 
     assertEquals(360_000, overview.todayMillis)
+    assertEquals(960_000 + 120_000, overview.weekMillis)
     assertEquals(1_080_000, overview.totalMillis)
     assertEquals(
       listOf(
         StudyOverview.Folder(
           name = "friendsTTS",
+          category = StudyCategory.Audiobook,
           millis = 960_000,
           plays = 3,
           lastDate = "2026-11-04",
@@ -36,6 +38,7 @@ class StudyOverviewTest {
         ),
         StudyOverview.Folder(
           name = "S0106edition",
+          category = StudyCategory.Audiobook,
           millis = 120_000,
           plays = 1,
           lastDate = "2026-11-02",
@@ -50,6 +53,6 @@ class StudyOverviewTest {
   fun `nothing studied yet`() {
     val overview = studyOverview(emptyList(), LocalDate.of(2026, 11, 4))
 
-    assertEquals(StudyOverview(0, 0, emptyList()), overview)
+    assertEquals(StudyOverview(0, 0, 0, emptyList()), overview)
   }
 }

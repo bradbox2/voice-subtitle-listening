@@ -147,6 +147,7 @@ private data class StudySyncResponse(
 @Inject
 class StudySync(
   private val stats: StudyStats,
+  private val categories: StudyCategories,
   private val settings: StudySyncSettingsStore,
   private val transport: StudySyncTransport,
   private val device: StudySyncDevice,
@@ -199,6 +200,7 @@ class StudySync(
         chinaToday = LocalDate.now(clock.withZone(CHINA)),
         deviceId = device.id,
         appVersion = device.appVersion,
+        labels = categories.labels.first(),
       ) ?: return StudySyncResult.NothingToSend
     val response =
       try {

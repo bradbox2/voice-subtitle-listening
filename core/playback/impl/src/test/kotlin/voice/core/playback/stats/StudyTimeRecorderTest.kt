@@ -1,6 +1,7 @@
 package voice.core.playback.stats
 
 import androidx.datastore.core.DataStore
+import io.mockk.mockk
 import java.time.Clock
 import java.time.Instant
 import java.time.ZoneId
@@ -29,7 +30,12 @@ class StudyTimeRecorderTest {
   // 20:00 in Shanghai
   private val clock = SchedulerClock(scope.testScheduler, Instant.parse("2026-11-04T12:00:00Z"))
   private val recorder =
-    StudyTimeRecorder(StudyStats(StudyStatsStore(store)), clock, scope.backgroundScope)
+    StudyTimeRecorder(
+      stats = StudyStats(StudyStatsStore(store)),
+      categorizer = mockk(relaxed = true),
+      clock = clock,
+      scope = scope.backgroundScope,
+    )
   private val lesson = StudyNames(folder = "S0106edition", file = "S01E06.mp3")
   private val other = StudyNames(folder = "S0106edition", file = "S01E07.mp3")
 

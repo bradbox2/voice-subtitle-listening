@@ -7,7 +7,6 @@ import android.net.Uri
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -32,6 +31,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -62,13 +62,19 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import voice.core.common.rootGraphAs
 import voice.core.strings.R as StringsR
+import voice.core.studystats.StudyCategories
+import voice.core.studystats.StudyCategorizer
+import voice.core.studystats.StudyCategory
 import voice.core.studystats.StudyOverview
 import voice.core.studystats.StudyStats
 import voice.core.studystats.StudySync
 import voice.core.studystats.StudySyncResult
+import voice.core.studystats.categoryOf
+import voice.core.studystats.inCategory
 import voice.core.studystats.studyCsv
 import voice.core.studystats.studyMonth
 import voice.core.studystats.studyOverview
+import voice.core.studystats.studyWeeks
 import voice.core.ui.icons.VoiceIcons
 import voice.navigation.Destination
 import voice.navigation.NavEntryProvider
@@ -77,6 +83,8 @@ import voice.navigation.Navigator
 @ContributesTo(AppScope::class)
 interface StudyStatsGraph {
   val studyStats: StudyStats
+  val studyCategories: StudyCategories
+  val studyCategorizer: StudyCategorizer
   val studySync: StudySync
   val navigator: Navigator
 }
@@ -104,7 +112,11 @@ fun StudyStatsScreen(modifier: Modifier = Modifier) {
     rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("text/csv")) { uri ->
       if (uri != null) {
         scope.launch {
-          writeCsv(context, uri, studyCsv(graph.studyStats.entries.first()))
+          writeCsv(
+            context,
+            uri,
+            studyCsv(graph.studyStats.entries.first(), graph.studyCategories.labels.first()),
+          )
           Toast.makeText(context, exportedMessage, Toast.LENGTH_SHORT).show()
         }
       }
@@ -158,11 +170,41 @@ fun StudyStatsScreen(modifier: Modifier = Modifier) {
   ) { contentPadding ->
     if (showSync) StudySyncDialog(sync = graph.studySync, onDismiss = { showSync = false })
     if (entries == null) return@Scaffold
-    val overview = remember(entries) { studyOverview(entries, LocalDate.now()) }
-    var byMonth by rememberSaveable { mutableStateOf(false) }
+    val labels = remember {
+      graph.studyCategories.labels
+    }
+      .collectAsState(initial = emptyMap())
+      .value
+    // books listened to before the labels existed, and books added since
+    LaunchedEffect(Unit) { graph.studyCategorizer.classifyLibrary() }
+    var filter by rememberSaveable { mutableStateOf<StudyCategory?>(null) }
+    var view by rememberSaveable { mutableStateOf(StudyView.Folders) }
+    var choosing by rememberSaveable { mutableStateOf<String?>(null) }
+    val overview =
+      remember(entries, labels, filter) { studyOverview(entries, LocalDate.now(), labels, filter) }
+    val weeks =
+      remember(entries, labels, filter) { studyWeeks(entries, LocalDate.now(), labels, filter) }
     var month by rememberSaveable { mutableStateOf(YearMonth.now()) }
     var selectedDay by rememberSaveable { mutableStateOf(LocalDate.now()) }
-    val days = remember(entries, month) { studyMonth(entries, month) }
+    val days =
+      remember(entries, labels, filter, month) {
+        studyMonth(entries.inCategory(labels, filter), month)
+      }
+    choosing?.let { folder ->
+      CategoryDialog(
+        folder = folder,
+        current = categoryOf(folder, labels),
+        onChoose = { category ->
+          choosing = null
+          scope.launch {
+            graph.studyCategories.choose(folder, category)
+            // the server sorts by what the app says
+            graph.studySync.syncAfterListening()
+          }
+        },
+        onDismiss = { choosing = null },
+      )
+    }
     LazyColumn(
       contentPadding =
         PaddingValues(
@@ -174,8 +216,12 @@ fun StudyStatsScreen(modifier: Modifier = Modifier) {
       verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
       item { Totals(overview) }
-      item { ViewSwitch(byMonth = byMonth, onByMonthChange = { byMonth = it }) }
-      if (byMonth) {
+      item { CategoryFilter(selected = filter, onSelect = { filter = it }) }
+      item { ViewSwitch(view = view, onViewChange = { view = it }) }
+      if (view == StudyView.Weeks) {
+        val longest = weeks.maxOf { it.millis }
+        items(weeks, key = { it.start.toString() }) { week -> WeekRow(week, longest) }
+      } else if (view == StudyView.Month) {
         item {
           StudyCalendar(
             days = days,
@@ -207,7 +253,17 @@ fun StudyStatsScreen(modifier: Modifier = Modifier) {
             )
           }
         }
-        items(overview.folders, key = { it.name }) { folder -> FolderCard(folder) }
+        items(overview.folders, key = { it.name }) { folder ->
+          FolderCard(folder, onLongClick = { choosing = folder.name })
+        }
+        if (overview.folders.isNotEmpty()) {
+          item {
+            Text(
+              text = stringResource(StringsR.string.study_category_hint),
+              style = MaterialTheme.typography.bodySmall,
+            )
+          }
+        }
       }
     }
   }
@@ -215,10 +271,15 @@ fun StudyStatsScreen(modifier: Modifier = Modifier) {
 
 @Composable
 private fun Totals(overview: StudyOverview) {
-  Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+  Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
     Total(
       label = stringResource(StringsR.string.study_today),
       millis = overview.todayMillis,
+      modifier = Modifier.weight(1F),
+    )
+    Total(
+      label = stringResource(StringsR.string.study_this_week),
+      millis = overview.weekMillis,
       modifier = Modifier.weight(1F),
     )
     Total(
@@ -244,12 +305,18 @@ private fun Total(
 }
 
 @Composable
-private fun FolderCard(folder: StudyOverview.Folder) {
+private fun FolderCard(
+  folder: StudyOverview.Folder,
+  onLongClick: () -> Unit,
+) {
   var expanded by rememberSaveable(folder.name) { mutableStateOf(false) }
   Card(shape = RoundedCornerShape(20.dp)) {
     Column {
       Row(
-        modifier = Modifier.fillMaxWidth().clickable { expanded = !expanded }.padding(16.dp),
+        modifier =
+          Modifier.fillMaxWidth()
+            .combinedClickable(onLongClick = onLongClick) { expanded = !expanded }
+            .padding(16.dp),
         verticalAlignment = Alignment.CenterVertically,
       ) {
         Column(Modifier.weight(1F)) {
@@ -259,7 +326,7 @@ private fun FolderCard(folder: StudyOverview.Folder) {
             fontWeight = FontWeight.SemiBold,
           )
           Text(
-            details(folder.plays, folder.lastDate),
+            folder.category.label() + " · " + details(folder.plays, folder.lastDate),
             style = MaterialTheme.typography.bodySmall,
           )
         }

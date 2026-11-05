@@ -42,25 +42,34 @@ import voice.core.studystats.StudyDay
 import voice.core.studystats.StudyEntry
 import voice.core.ui.icons.VoiceIcons
 
+enum class StudyView {
+  Folders,
+  Weeks,
+  Month,
+}
+
 @Composable
 internal fun ViewSwitch(
-  byMonth: Boolean,
-  onByMonthChange: (Boolean) -> Unit,
+  view: StudyView,
+  onViewChange: (StudyView) -> Unit,
 ) {
   SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth()) {
-    SegmentedButton(
-      selected = !byMonth,
-      onClick = { onByMonthChange(false) },
-      shape = SegmentedButtonDefaults.itemShape(index = 0, count = 2),
-    ) {
-      Text(stringResource(StringsR.string.study_view_folders))
-    }
-    SegmentedButton(
-      selected = byMonth,
-      onClick = { onByMonthChange(true) },
-      shape = SegmentedButtonDefaults.itemShape(index = 1, count = 2),
-    ) {
-      Text(stringResource(StringsR.string.study_view_month))
+    StudyView.entries.forEachIndexed { index, option ->
+      SegmentedButton(
+        selected = view == option,
+        onClick = { onViewChange(option) },
+        shape = SegmentedButtonDefaults.itemShape(index = index, count = StudyView.entries.size),
+      ) {
+        Text(
+          stringResource(
+            when (option) {
+              StudyView.Folders -> StringsR.string.study_view_folders
+              StudyView.Weeks -> StringsR.string.study_view_weeks
+              StudyView.Month -> StringsR.string.study_view_month
+            },
+          ),
+        )
+      }
     }
   }
 }
