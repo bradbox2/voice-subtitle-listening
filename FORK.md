@@ -83,6 +83,7 @@ git merge upstream/main   # 或 rebase
 
 - `README.md`：fork 自己的说明（注明不是官方 Voice）。同步上游时保留 fork 版本。
 - 删除了 `.github/workflows/deploy_pages.yml`：它在推送 `main` 时会把上游的官方网站部署到本仓库的 GitHub Pages，看起来像官方 Voice。同步上游时如果它又出现，再删掉。
+- 设置页的"Support development"赞助卡片已关闭：`app/build.gradle.kts` 里 `free` 版的 `SUPPORT_DEVELOPMENT_INCLUDED` 改成了 `false`（上游 `free` 是 `true`，`play` 是 `false`）。原因：链接是 Ko-fi，在中国打不开。只改了这一行，赞助页和卡片的代码都保留，同步上游时不会冲突；仍可在开发者菜单里重新打开。同步上游后检查这一行有没有被改回去。
 - fork 的文案都在 `core/strings/src/main/res/values*/strings_fork.xml`（英文、简体、繁体），**不要加进 `strings.xml`**：上游的 `scripts/check_locale_config.main.kts` 要求 `strings.xml` 里每种语言 100% 翻译，否则 CI 失败；放在单独文件里也避免同步上游时冲突。其他语言缺翻译时显示英文（文件根上有 `tools:ignore="MissingTranslation"`）。
 - `.github/workflows/ci.yml` 加了 `permissions: checks: write`，否则 JUnit 报告步骤没有权限。同步上游时保留。
 - 最低支持 Android 9（API 28）：不要用只有新版本才有的 API（例如 `URLDecoder.decode(String, Charset)` 需要 API 33，改用 `"UTF-8"` 字符串版本）。提交前跑 `./gradlew :app:lintFreeDebug`，它会抓到这类问题。
