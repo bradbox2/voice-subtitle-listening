@@ -107,4 +107,6 @@
     <string name="study.sync.no_connection">Can\'t reach the server.</string>
     <!-- Result of the study time sync for any other answer. %1$d is the HTTP status code. -->
     <string name="study.sync.server_error">The server answered with an error (%1$d).</string>
+    <!-- Read out by screen readers for long pressing the cloud button of the study time screen, which opens the address and token of the sync. -->
+    <string name="study.sync.settings">Address and token</string>
 </resources>

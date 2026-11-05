@@ -52,4 +52,5 @@
     <string name="study.sync.server_token_missing">服务器还没有设置令牌。</string>
     <string name="study.sync.no_connection">连不上服务器。</string>
     <string name="study.sync.server_error">服务器返回了错误（%1$d）。</string>
+    <string name="study.sync.settings">地址和令牌</string>
 </resources>

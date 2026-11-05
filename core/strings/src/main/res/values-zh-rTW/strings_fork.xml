@@ -52,4 +52,5 @@
     <string name="study.sync.server_token_missing">伺服器還沒有設定權杖。</string>
     <string name="study.sync.no_connection">連不上伺服器。</string>
     <string name="study.sync.server_error">伺服器回傳了錯誤（%1$d）。</string>
+    <string name="study.sync.settings">位址和權杖</string>
 </resources>

@@ -1,5 +1,7 @@
 package voice.features.studyStats
 
+import android.content.Context
+import android.widget.Toast
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -19,6 +21,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
@@ -53,6 +56,7 @@ internal fun StudySyncDialog(
   }
   var syncing by remember { mutableStateOf(false) }
   val scope = rememberCoroutineScope()
+  val context = LocalContext.current
   AlertDialog(
     onDismissRequest = onDismiss,
     title = { Text(stringResource(StringsR.string.study_sync_title)) },
@@ -86,7 +90,7 @@ internal fun StudySyncDialog(
           CircularProgressIndicator()
         } else {
           result?.let {
-            Text(text = resultText(it), style = MaterialTheme.typography.bodyMedium)
+            Text(text = it.message(context), style = MaterialTheme.typography.bodyMedium)
           }
         }
         settings
@@ -106,8 +110,13 @@ internal fun StudySyncDialog(
           scope.launch {
             syncing = true
             sync.configure(url, token)
-            sync.sync()
+            val result = sync.sync()
             syncing = false
+            // all there is to see after the setup is that it worked
+            if (result is StudySyncResult.Done) {
+              Toast.makeText(context, result.message(context), Toast.LENGTH_SHORT).show()
+              onDismiss()
+            }
           }
         },
       ) {
@@ -120,24 +129,30 @@ internal fun StudySyncDialog(
   )
 }
 
-@Composable
-private fun resultText(result: StudySyncResult): String {
-  return when (result) {
+internal fun StudySyncResult.message(context: Context): String {
+  return when (this) {
     is StudySyncResult.Done ->
-      result.lastDate?.let { stringResource(StringsR.string.study_sync_done_last, it) }
-        ?: stringResource(StringsR.string.study_sync_done)
-    StudySyncResult.NotConfigured -> stringResource(StringsR.string.study_sync_not_configured)
-    StudySyncResult.NothingToSend -> stringResource(StringsR.string.study_sync_nothing)
-    StudySyncResult.BadAddress -> stringResource(StringsR.string.study_sync_bad_address)
-    StudySyncResult.BadToken -> stringResource(StringsR.string.study_sync_bad_token)
-    StudySyncResult.Rejected -> stringResource(StringsR.string.study_sync_rejected)
+      lastDate?.let { context.getString(StringsR.string.study_sync_done_last, it) }
+        ?: context.getString(StringsR.string.study_sync_done)
+    StudySyncResult.NotConfigured -> context.getString(StringsR.string.study_sync_not_configured)
+    StudySyncResult.NothingToSend -> context.getString(StringsR.string.study_sync_nothing)
+    StudySyncResult.BadAddress -> context.getString(StringsR.string.study_sync_bad_address)
+    StudySyncResult.BadToken -> context.getString(StringsR.string.study_sync_bad_token)
+    StudySyncResult.Rejected -> context.getString(StringsR.string.study_sync_rejected)
     StudySyncResult.ServerTokenMissing ->
-      stringResource(StringsR.string.study_sync_server_token_missing)
-    StudySyncResult.NoConnection -> stringResource(StringsR.string.study_sync_no_connection)
+      context.getString(StringsR.string.study_sync_server_token_missing)
+    StudySyncResult.NoConnection -> context.getString(StringsR.string.study_sync_no_connection)
     is StudySyncResult.ServerError ->
-      stringResource(StringsR.string.study_sync_server_error, result.code)
+      context.getString(StringsR.string.study_sync_server_error, code)
   }
 }
+
+/** What the listener has to fix, so the settings come up on their own. */
+internal val StudySyncResult.needsSettings: Boolean
+  get() =
+    this == StudySyncResult.NotConfigured ||
+      this == StudySyncResult.BadAddress ||
+      this == StudySyncResult.BadToken
 
 private fun lastSyncText(settings: StudySyncSettings): String {
   return DateTimeFormatter.ofLocalizedDateTime(FormatStyle.MEDIUM, FormatStyle.SHORT)
