@@ -302,6 +302,27 @@ class ChapterMarkPlayerTest {
   }
 
   @Test
+  fun `previous and next stay in the looped file`() {
+    setBook(listOf(chapter(duration = 10_000), chapter(duration = 10_000)), startItemIndex = 1)
+    player.setPlaybackMode(PlaybackMode.SingleTrackLoop)
+    exoPlayer.seekTo(1, 4_000)
+
+    assertTrue(player.seekWithinLoopedFile(toEnd = false))
+    assertEquals(expected = 1, actual = exoPlayer.currentMediaItemIndex)
+    assertEquals(expected = 0L, actual = exoPlayer.currentPosition)
+
+    assertTrue(player.seekWithinLoopedFile(toEnd = true))
+    assertEquals(expected = 1, actual = exoPlayer.currentMediaItemIndex)
+  }
+
+  @Test
+  fun `previous and next are not taken over outside the loop mode`() {
+    setBook(listOf(chapter(duration = 10_000), chapter(duration = 10_000)))
+
+    assertFalse(player.seekWithinLoopedFile(toEnd = true))
+  }
+
+  @Test
   fun `a loop range does not jump back when its end is handled otherwise`() {
     setBook(listOf(singleFileWithThreeMarks()))
     player.setLoopRange(book.chapters.single().id, startMs = 0, endMs = 1_000) { false }

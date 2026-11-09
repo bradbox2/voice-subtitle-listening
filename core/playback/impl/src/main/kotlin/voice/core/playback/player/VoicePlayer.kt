@@ -147,10 +147,12 @@ class VoicePlayer(
   // still hold the book
   // before it was split into chapters.
   fun forceSeekToNext() {
+    if (player.seekWithinLoopedFile(toEnd = true)) return
     player.seekToNextMediaItem()
   }
 
   fun forceSeekToPrevious() {
+    if (player.seekWithinLoopedFile(toEnd = false)) return
     player.seekToPrevious()
   }
 

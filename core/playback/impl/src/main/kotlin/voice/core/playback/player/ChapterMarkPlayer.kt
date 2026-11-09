@@ -124,6 +124,8 @@ class ChapterMarkPlayer(
     invalidateState()
   }
 
+  private var playbackMode = PlaybackMode.Sequential
+
   fun setSkipSilenceEnabled(enabled: Boolean) {
     player.skipSilenceEnabled = enabled
   }
@@ -161,6 +163,7 @@ class ChapterMarkPlayer(
    * practicing with one file per lesson mean.
    */
   fun setPlaybackMode(mode: PlaybackMode) {
+    playbackMode = mode
     player.repeatMode =
       when (mode) {
         PlaybackMode.SingleTrackLoop -> REPEAT_MODE_ONE
@@ -169,6 +172,18 @@ class ChapterMarkPlayer(
         PlaybackMode.Shuffle -> REPEAT_MODE_OFF
       }
     player.shuffleModeEnabled = mode == PlaybackMode.Shuffle
+  }
+
+  /**
+   * Previous and next while one file loops stay in that file: previous goes to its start, next to
+   * its end, where the loop begins it again. Returns false in the other modes.
+   */
+  fun seekWithinLoopedFile(toEnd: Boolean): Boolean {
+    if (playbackMode != PlaybackMode.SingleTrackLoop) return false
+    val duration = player.duration
+    if (toEnd && duration == C.TIME_UNSET) return true
+    player.seekTo(player.currentMediaItemIndex, if (toEnd) duration else 0L)
+    return true
   }
 
   /**

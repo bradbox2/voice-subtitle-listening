@@ -97,3 +97,10 @@ git merge upstream/main   # 或 rebase
 
 - 这些上游测试在 Windows 上失败，与 fork 无关（Room 测试数据库路径、`File.toUri()` 差异）：`core:data:impl` 的 `Migration*Test`、`DataBaseMigratorTest`、`ConvertersTest`、`CustomMetadataRepoImplTest`；`core:scanner` 的 `MediaScannerTest` 中三个改名相关用例。在 Linux CI 上应通过。
 - 装机：`adb install -r app/build/outputs/apk/free/debug/app-free-debug.apk`。签名用本机 `~/.android/debug.keystore`。**签名不一致时不要卸载旧版**（会清空书库），先想办法。
+
+## Playback mode "One" (SingleTrackLoop)
+
+Previous/next from the app (`ForceSeekToPrevious/Next`) stay in the looped file: previous goes to
+its start, next to its end, where `REPEAT_MODE_ONE` begins it again. Implemented in
+`ChapterMarkPlayer.seekWithinLoopedFile`; headset/car skips are unaffected. The presented state
+reports repeat off, so without this the chapter-level next/previous would leave the file.
