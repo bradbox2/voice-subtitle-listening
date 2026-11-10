@@ -20,6 +20,7 @@ dependencies {
 
   implementation(libs.coil)
   implementation(libs.androidxCore)
+  implementation(libs.lifecycle.compose)
   implementation(libs.navigation3.ui)
 
   testImplementation(libs.compose.ui.testJunit)

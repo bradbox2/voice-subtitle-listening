@@ -90,6 +90,12 @@ class BookOverviewViewModel(
     serverLibrary.sync()
   }
 
+  /** Pull to refresh: looks at the folders again, for files that changed while Voice was open. */
+  internal suspend fun refresh() {
+    serverLibrary.sync()
+    mediaScanner.rescan()
+  }
+
   @Composable
   internal fun state(): BookOverviewViewState {
     val kioskMode = remember { kioskModeFeatureFlag.get() }

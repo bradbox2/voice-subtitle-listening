@@ -36,6 +36,12 @@ internal constructor(
   private val scope = CoroutineScope(Dispatchers.IO)
   private var scanningJob: Job? = null
 
+  /** Scans again, also while a scan runs, and returns when it is done. */
+  public suspend fun rescan() {
+    scan(restartIfScanning = true)
+    scanningJob?.join()
+  }
+
   public fun scan(restartIfScanning: Boolean = false) {
     Logger.i("scanForFiles with restartIfScanning=$restartIfScanning")
     if (scanningJob?.isActive == true && !restartIfScanning) {

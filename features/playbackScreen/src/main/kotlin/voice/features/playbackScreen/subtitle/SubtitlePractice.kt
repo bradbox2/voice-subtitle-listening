@@ -1,11 +1,18 @@
 package voice.features.playbackScreen.subtitle
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import dev.zacsweers.metro.Inject
 import java.net.URLDecoder
 import kotlinx.coroutines.flow.first
@@ -55,10 +62,23 @@ class SubtitlePractice(
     positionMs: Long,
     playbackSpeed: Float,
   ): SubtitlesViewState? {
+    // a subtitle file replaced in a file manager is read again when the app comes back
+    var reloads by remember { mutableIntStateOf(0) }
+    val lifecycle = LocalLifecycleOwner.current.lifecycle
+    DisposableEffect(lifecycle) {
+      val observer = LifecycleEventObserver { _, event ->
+        if (event == Lifecycle.Event.ON_START) reloads++
+      }
+      lifecycle.addObserver(observer)
+      onDispose { lifecycle.removeObserver(observer) }
+    }
+    var loadedFor by remember { mutableStateOf<ChapterId?>(null) }
     val cues =
-      produceState(initialValue = emptyList<SubtitleCue>(), chapterId) {
-          value = emptyList()
+      produceState(initialValue = emptyList<SubtitleCue>(), chapterId, reloads) {
+          // the same chapter keeps its lines while it loads again, so the list doesn't flash
+          if (loadedFor != chapterId) value = emptyList()
           value = withContext(dispatcherProvider.io) { subtitleLoader.loadForAudio(chapterId) }
+          loadedFor = chapterId
         }
         .value
     LaunchedEffect(chapterId) {

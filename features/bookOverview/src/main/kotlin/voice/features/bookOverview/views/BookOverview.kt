@@ -25,12 +25,14 @@ import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.retain.retain
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
@@ -51,6 +53,7 @@ import dev.zacsweers.metro.ContributesTo
 import dev.zacsweers.metro.IntoSet
 import dev.zacsweers.metro.Provides
 import kotlin.uuid.Uuid
+import kotlinx.coroutines.launch
 import voice.core.common.rootGraphAs
 import voice.core.data.BookId
 import voice.core.strings.R as StringsR
@@ -92,6 +95,8 @@ fun BookOverviewScreen(modifier: Modifier = Modifier) {
   LaunchedEffect(Unit) {
     bookOverviewViewModel.attach()
   }
+  val refreshScope = rememberCoroutineScope()
+  var refreshing by remember { mutableStateOf(false) }
   val viewState = bookOverviewViewModel.state()
   val snackbarHostState = remember { SnackbarHostState() }
   val resources = LocalResources.current
@@ -126,6 +131,17 @@ fun BookOverviewScreen(modifier: Modifier = Modifier) {
     onShowFoldersClick = bookOverviewViewModel::onShowFoldersClick,
     onShowHiddenBooksChange = bookOverviewViewModel::onShowHiddenBooksChange,
     snackbarHostState = snackbarHostState,
+    refreshing = refreshing,
+    onRefresh = {
+      refreshScope.launch {
+        refreshing = true
+        try {
+          bookOverviewViewModel.refresh()
+        } finally {
+          refreshing = false
+        }
+      }
+    },
     modifier = modifier,
   )
 }
@@ -148,6 +164,8 @@ internal fun BookOverview(
   onShowHiddenBooksChange: (Boolean) -> Unit,
   modifier: Modifier = Modifier,
   snackbarHostState: SnackbarHostState = remember { SnackbarHostState() },
+  refreshing: Boolean = false,
+  onRefresh: () -> Unit = {},
 ) {
   val scrollBehavior = SearchBarDefaults.enterAlwaysSearchBarScrollBehavior()
   val gridState = rememberLazyGridState()
@@ -195,20 +213,25 @@ internal fun BookOverview(
     },
     contentWindowInsets = WindowInsets(0, 0, 0, 0),
   ) { contentPadding ->
-    Library(
-      viewState = viewState,
-      gridState = gridState,
-      onBookClick = onBookClick,
-      onBookLongClick = onBookLongClick,
-      onSeriesClick = onSeriesClick,
-      onPlayClick = onPlayButtonClick,
-      onPermissionBugCardClick = onPermissionBugCardClick,
-      onSurveyClick = onSurveyClick,
-      onSurveyDismiss = onSurveyDismiss,
-      onShowFoldersClick = onShowFoldersClick,
-      onHiddenBooksClick = { showFilterSheet = true },
+    PullToRefreshBox(
+      isRefreshing = refreshing,
+      onRefresh = onRefresh,
       modifier = Modifier.padding(contentPadding).consumeWindowInsets(contentPadding),
-    )
+    ) {
+      Library(
+        viewState = viewState,
+        gridState = gridState,
+        onBookClick = onBookClick,
+        onBookLongClick = onBookLongClick,
+        onSeriesClick = onSeriesClick,
+        onPlayClick = onPlayButtonClick,
+        onPermissionBugCardClick = onPermissionBugCardClick,
+        onSurveyClick = onSurveyClick,
+        onSurveyDismiss = onSurveyDismiss,
+        onShowFoldersClick = onShowFoldersClick,
+        onHiddenBooksClick = { showFilterSheet = true },
+      )
+    }
   }
   Dialog(
     dialog = viewState.dialog,

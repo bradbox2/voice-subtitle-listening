@@ -104,3 +104,12 @@ Previous/next from the app (`ForceSeekToPrevious/Next`) stay in the looped file:
 its start, next to its end, where `REPEAT_MODE_ONE` begins it again. Implemented in
 `ChapterMarkPlayer.seekWithinLoopedFile`; headset/car skips are unaffected. The presented state
 reports repeat off, so without this the chapter-level next/previous would leave the file.
+
+## Refreshing the library
+
+Files change in a file manager while Voice stays open, so the library can be refreshed three ways:
+pull down on the bookshelf (`MediaScanTrigger.rescan`, restarts a running scan), automatic scan when
+the app comes to the front (`MediaScanInitializer`, at most every 30 s), and the subtitle file is
+read again whenever the app starts (`SubtitlePractice`, on `ON_START`). The scanner already compares
+size and modified time of every audio file (`ChapterParser` / `ChapterRepo.getOrPut`), so replaced
+files are found by any scan; no extra change detection is needed.
