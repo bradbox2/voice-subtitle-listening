@@ -313,6 +313,30 @@ class MediaScannerTest {
   }
 
   @Test
+  fun `a single book takes the progress of the folder it was renamed from, which is still set up`() =
+    test {
+      val parent = folder("audiobooks")
+      val old = File(parent, "old")
+      val chapter1 = audioFile(old, "1.mp3")
+      audioFile(old, "2.mp3")
+      scan(FolderType.SingleFolder, old)
+      play(
+        BookId(old.toUri()),
+        chapter1,
+        position = 100,
+        playedAt = Instant.parse("2026-01-01T10:00:00Z"),
+      )
+      val renamed = File(parent, "new")
+      check(old.renameTo(renamed))
+
+      scan(FolderType.SingleFolder, old, renamed)
+
+      val content = bookContentRepo.get(BookId(renamed.toUri()))!!
+      assertEquals(expected = 100, actual = content.positionInChapter)
+      assertEquals(expected = false, actual = bookContentRepo.get(BookId(old.toUri()))!!.isActive)
+    }
+
+  @Test
   fun `a book with more files than fit into one book is skipped`() = test {
     val audiobookFolder = folder("audiobooks")
     val book = File(audiobookFolder, "Book")

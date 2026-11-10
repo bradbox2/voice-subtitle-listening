@@ -121,3 +121,8 @@ expected the content unchanged). That left a single-folder book whose folder was
 shelf, and playing it said "file not found" even after a refresh. `MediaScanner.scan` now sets a
 book without audio files inactive, which keeps its position; it is active again with the position
 once its files are back. When merging upstream, keep this and the changed test.
+
+A single-book folder that is gone but still set up is no longer counted as scanned
+(`MediaScanner`: only files that exist), so the same book under its new name finds it as its
+predecessor and takes over position, bookmarks and history. Windows can't run the rename tests of
+`MediaScannerTest` (file names are not read from `C:\` uris), CI on Linux does.

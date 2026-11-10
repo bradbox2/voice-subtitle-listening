@@ -49,7 +49,9 @@ internal class MediaScanner(
       }
     }
 
-    val bookIds = files.map { BookId(it.uri) }
+    // a book whose folder is gone is still listed when its folder is set up as a single book. It
+    // isn't scanned, so the book under its new name can take over its progress
+    val bookIds = files.filter { it.isFile || it.isDirectory }.map { BookId(it.uri) }
     // before the books found again become active, so they can be told apart from the books still in
     // the library
     val previousBooks =
@@ -58,7 +60,6 @@ internal class MediaScanner(
         scanned = bookIds.toSet(),
         chapterRepo = chapterRepo,
       )
-    contentRepo.setAllInactiveExcept(bookIds)
 
     val probeFile = folders.values.flatten().findProbeFile()
     if (probeFile != null) {
@@ -67,10 +68,12 @@ internal class MediaScanner(
         return
       }
     }
+    contentRepo.setAllInactiveExcept(bookIds)
 
     // a single book whose folder or files are gone is found by its uri but has nothing to play
     val withoutAudio = mutableSetOf<BookId>()
     files
+      .filter { it.isFile || it.isDirectory }
       .sortedBy { it.audioFileCount() }
       .forEach { file ->
         if (!scan(file, previousBooks)) withoutAudio += BookId(file.uri)
