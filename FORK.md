@@ -133,3 +133,17 @@ Files often carry the same tag title (several `Friends S01E02 (TTS dialogue)` wi
 versions), so the chapter sheet adds the file name with its extension below the title when the book
 has more than one file and the title is not the file name already. The extension tells it apart
 from the title. `ChapterId.fullFileName()` (with extension) next to `fileName()`.
+
+## Merging upstream
+
+Trial merge on 2026-11-10 (fork base `4ef7fa716`, upstream 64 commits ahead): 10 conflicted files,
+all in code the fork changed: `VoicePlayer`, `ChapterMarkPlayer`, `MediaScanner` (+ its test),
+`BookOverview`, `BookPlayViewModel`, `PlaybackTopBar`, three `build.gradle.kts`, and
+`deploy_pages.yml` (deleted here). The rest merged by itself.
+
+How to merge: `git fetch upstream`, merge on a branch, resolve, then
+`./gradlew spotlessApply :app:lintFreeDebug` and the unit tests of `core:playback:impl`,
+`core:scanner`, `features:playbackScreen`, `core:studystats`, `core:subtitle`; push and read the
+Linux CI (the rename tests of `MediaScannerTest` can't run on Windows). Check each point of
+this file (drift measures, deviations, stored keys, support card, portrait lock) is still in place.
+Merge every few weeks, the conflicts grow with the distance. Never push to `upstream`.
