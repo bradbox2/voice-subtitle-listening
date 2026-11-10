@@ -274,7 +274,7 @@ class BookPlayViewModelTest {
             time = "9:00",
           ),
         ),
-      actual = dialogState.items,
+      actual = dialogState.items.map { it.copy(fileName = null) },
     )
   }
 

@@ -87,6 +87,8 @@ internal sealed interface BookPlayDialogViewState {
       val name: String?,
       val active: Boolean,
       val time: String,
+      // set when files carry the same title, which leaves their names to tell them apart
+      val fileName: String? = null,
     )
   }
 

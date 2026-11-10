@@ -54,6 +54,8 @@ import voice.core.sleeptimer.SleepTimerState
 import voice.core.ui.formatTime
 import voice.features.playbackScreen.batteryOptimization.BatteryOptimization
 import voice.features.playbackScreen.subtitle.SubtitlePractice
+import voice.features.playbackScreen.subtitle.fileName
+import voice.features.playbackScreen.subtitle.fullFileName
 import voice.navigation.Destination
 import voice.navigation.Navigator
 
@@ -353,11 +355,16 @@ class BookPlayViewModel(
             book.chapters.flatMapIndexed { chapterIndex, chapter ->
               chapter.chapterMarks.mapIndexed { markIndex, chapterMark ->
                 val previousChapters = book.chapters.take(chapterIndex)
+                val name = chapterMark.name?.takeIf { it.isNotBlank() }
                 BookPlayDialogViewState.SelectChapterDialog.ItemViewState(
                   number = previousChapters.sumOf { it.chapterMarks.count() } + markIndex + 1,
-                  name = chapterMark.name?.takeIf { it.isNotBlank() },
+                  name = name,
                   active = chapterMark == book.currentMark && chapter == book.currentChapter,
                   time = formatTime(previousChapters.sumOf { it.duration } + chapterMark.startMs),
+                  fileName =
+                    chapter.id.fullFileName().takeIf {
+                      name != chapter.id.fileName() && book.chapters.size > 1
+                    },
                 )
               }
             },

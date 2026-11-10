@@ -1,7 +1,6 @@
 package voice.features.playbackScreen.subtitle
 
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -10,9 +9,6 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.lifecycle.Lifecycle
-import androidx.lifecycle.LifecycleEventObserver
-import androidx.lifecycle.compose.LocalLifecycleOwner
 import dev.zacsweers.metro.Inject
 import java.net.URLDecoder
 import kotlinx.coroutines.flow.first
@@ -50,6 +46,12 @@ class SubtitlePractice(
   private val selectedCueStartMs = mutableStateOf<Long?>(null)
   private var loopRangeSet = false
   private var current: Current? = null
+  private val reloadCount = mutableIntStateOf(0)
+
+  /** Reads the subtitle file again, for one that was replaced in a file manager. */
+  fun reload() {
+    reloadCount.intValue++
+  }
 
   /** Whether the chapter that plays has subtitles. */
   val active: Boolean
@@ -62,16 +64,7 @@ class SubtitlePractice(
     positionMs: Long,
     playbackSpeed: Float,
   ): SubtitlesViewState? {
-    // a subtitle file replaced in a file manager is read again when the app comes back
-    var reloads by remember { mutableIntStateOf(0) }
-    val lifecycle = LocalLifecycleOwner.current.lifecycle
-    DisposableEffect(lifecycle) {
-      val observer = LifecycleEventObserver { _, event ->
-        if (event == Lifecycle.Event.ON_START) reloads++
-      }
-      lifecycle.addObserver(observer)
-      onDispose { lifecycle.removeObserver(observer) }
-    }
+    val reloads = reloadCount.intValue
     var loadedFor by remember { mutableStateOf<ChapterId?>(null) }
     val cues =
       produceState(initialValue = emptyList<SubtitleCue>(), chapterId, reloads) {
@@ -246,10 +239,13 @@ internal fun List<SubtitleCue>.loopCue(
   return activeCueIndex(subtitleTimeMs)?.let(::get)
 }
 
-internal fun ChapterId.fileName(): String {
+internal fun ChapterId.fileName(): String = fullFileName().substringBeforeLast('.')
+
+/** The file name with its extension, as a file manager shows it. */
+internal fun ChapterId.fullFileName(): String {
   // + is literal in uris, URLDecoder would turn it into a space
   val decoded = URLDecoder.decode(value.replace("+", "%2B"), "UTF-8")
-  return decoded.substringAfterLast('/').substringAfterLast(':').substringBeforeLast('.')
+  return decoded.substringAfterLast('/').substringAfterLast(':')
 }
 
 private const val LOOP_FOLLOW_TOLERANCE_MS = 1_000L

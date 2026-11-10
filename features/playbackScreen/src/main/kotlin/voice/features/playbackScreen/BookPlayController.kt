@@ -8,6 +8,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.retain.retain
 import androidx.compose.ui.res.stringResource
+import androidx.lifecycle.compose.LifecycleStartEffect
 import androidx.navigation3.runtime.NavEntry
 import dev.zacsweers.metro.AppScope
 import dev.zacsweers.metro.BindingContainer
@@ -41,6 +42,11 @@ fun BookPlayScreen(bookId: BookId) {
     stringResource(StringsR.string.playback_battery_optimization_rationale)
   val batteryOptimizationAction =
     stringResource(StringsR.string.playback_battery_optimization_action)
+  // a subtitle file replaced in a file manager is read again when the app comes back
+  LifecycleStartEffect(viewModel) {
+    viewModel.subtitles.reload()
+    onStopOrDispose {}
+  }
   LaunchedEffect(viewModel) {
     viewModel.viewEffects.collect { viewEffect ->
       when (viewEffect) {

@@ -5,6 +5,7 @@ package voice.features.playbackScreen
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -35,6 +36,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import voice.core.strings.R as StringsR
 import voice.core.ui.NowPlayingBars
@@ -145,14 +147,25 @@ private fun ChapterItem(
       val nameStyle =
         if (chapter.active) MaterialTheme.typography.titleMediumEmphasized
         else MaterialTheme.typography.bodyLarge
-      Text(
-        modifier = Modifier.weight(1F),
-        text =
-          chapter.name ?: stringResource(StringsR.string.playback_chapter_unnamed, chapter.number),
-        style = if (chapter.name != null) nameStyle.bookText() else nameStyle,
-        color = if (played) colors.onSurfaceVariant else Color.Unspecified,
-        maxLines = 2,
-      )
+      Column(modifier = Modifier.weight(1F)) {
+        Text(
+          text =
+            chapter.name
+              ?: stringResource(StringsR.string.playback_chapter_unnamed, chapter.number),
+          style = if (chapter.name != null) nameStyle.bookText() else nameStyle,
+          color = if (played) colors.onSurfaceVariant else Color.Unspecified,
+          maxLines = 2,
+        )
+        if (chapter.fileName != null) {
+          Text(
+            text = chapter.fileName,
+            style = MaterialTheme.typography.labelMedium,
+            color = if (chapter.active) colors.onPrimaryContainer else colors.onSurfaceVariant,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+          )
+        }
+      }
       Spacer(Modifier.width(12.dp))
       Text(
         text = chapter.time,

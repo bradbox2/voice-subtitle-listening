@@ -126,3 +126,10 @@ A single-book folder that is gone but still set up is no longer counted as scann
 (`MediaScanner`: only files that exist), so the same book under its new name finds it as its
 predecessor and takes over position, bookmarks and history. Windows can't run the rename tests of
 `MediaScannerTest` (file names are not read from `C:\` uris), CI on Linux does.
+
+## Chapter list shows file names
+
+Files often carry the same tag title (several `Friends S01E02 (TTS dialogue)` with different
+versions), so the chapter sheet adds the file name with its extension below the title when the book
+has more than one file and the title is not the file name already. The extension tells it apart
+from the title. `ChapterId.fullFileName()` (with extension) next to `fileName()`.
