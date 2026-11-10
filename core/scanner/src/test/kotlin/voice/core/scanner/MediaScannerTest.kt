@@ -142,7 +142,34 @@ class MediaScannerTest {
     audioFile(book1, "2.mp3")
     audioFile(book1, "10.mp3")
 
-    assertEquals(expected = contentWithPositionAtLastChapter, actual = bookContentRepo.get(book1Id))
+    // fork: a book without files leaves the library, but keeps its position
+    assertEquals(
+      expected = contentWithPositionAtLastChapter.copy(isActive = false),
+      actual = bookContentRepo.get(book1Id),
+    )
+  }
+
+  @Test
+  fun `a book whose files come back is active again with its position`() = test {
+    val audiobookFolder = folder("audiobooks")
+    val book = File(audiobookFolder, "book")
+    val chapters = listOf(audioFile(book, "1.mp3"), audioFile(book, "2.mp3"))
+    scan(FolderType.Root, audiobookFolder)
+    val played =
+      bookContentRepo
+        .get(BookId(book.toUri()))!!
+        .copy(currentChapter = ChapterId(chapters.last().toUri()))
+    bookContentRepo.put(played)
+    chapters.forEach { it.delete() }
+    scan(FolderType.Root, audiobookFolder)
+
+    audioFile(book, "1.mp3")
+    audioFile(book, "2.mp3")
+    scan(FolderType.Root, audiobookFolder)
+
+    val content = bookContentRepo.get(BookId(book.toUri()))!!
+    assertEquals(expected = true, actual = content.isActive)
+    assertEquals(expected = played.currentChapter, actual = content.currentChapter)
   }
 
   @Test
@@ -259,6 +286,30 @@ class MediaScannerTest {
     assertBookContents(
       BookContentView(folder, chapters = listOf(book)),
     )
+  }
+
+  @Test
+  fun `a single book whose files are deleted is not active anymore`() = test {
+    val folder = folder("book")
+    val book = audioFile(parent = folder, "test.mp3")
+    scan(FolderType.SingleFolder, folder)
+    assertEquals(expected = true, actual = bookContentRepo.get(BookId(folder.toUri()))!!.isActive)
+
+    book.delete()
+    scan(FolderType.SingleFolder, folder)
+    assertEquals(expected = false, actual = bookContentRepo.get(BookId(folder.toUri()))!!.isActive)
+  }
+
+  @Test
+  fun `a single book whose folder is deleted is not active anymore`() = test {
+    val folder = folder("book")
+    audioFile(parent = folder, "test.mp3")
+    scan(FolderType.SingleFolder, folder)
+
+    folder.deleteRecursively()
+    scan(FolderType.SingleFolder, folder)
+
+    assertEquals(expected = false, actual = bookContentRepo.get(BookId(folder.toUri()))!!.isActive)
   }
 
   @Test

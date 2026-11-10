@@ -113,3 +113,11 @@ the app comes to the front (`MediaScanInitializer`, at most every 30 s), and the
 read again whenever the app starts (`SubtitlePractice`, on `ON_START`). The scanner already compares
 size and modified time of every audio file (`ChapterParser` / `ChapterRepo.getOrPut`), so replaced
 files are found by any scan; no extra change detection is needed.
+
+### Books without files leave the library (deviates from upstream)
+
+Upstream keeps a book active when all its files are gone (test `metadataPreservedOnDeletion`
+expected the content unchanged). That left a single-folder book whose folder was deleted on the
+shelf, and playing it said "file not found" even after a refresh. `MediaScanner.scan` now sets a
+book without audio files inactive, which keeps its position; it is active again with the position
+once its files are back. When merging upstream, keep this and the changed test.

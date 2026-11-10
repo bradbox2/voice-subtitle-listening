@@ -68,11 +68,16 @@ internal class MediaScanner(
       }
     }
 
+    // a single book whose folder or files are gone is found by its uri but has nothing to play
+    val withoutAudio = mutableSetOf<BookId>()
     files
       .sortedBy { it.audioFileCount() }
       .forEach { file ->
-        scan(file, previousBooks)
+        if (!scan(file, previousBooks)) withoutAudio += BookId(file.uri)
       }
+    if (withoutAudio.isNotEmpty()) {
+      contentRepo.setAllInactiveExcept(bookIds - withoutAudio)
+    }
   }
 
   private fun List<CachedDocumentFile>.findProbeFile(): CachedDocumentFile? {
@@ -86,10 +91,10 @@ internal class MediaScanner(
   private suspend fun scan(
     file: CachedDocumentFile,
     previousBooks: PreviousBooks,
-  ) {
+  ): Boolean {
     val parseResult = chapterParser.parse(file)
     val chapters = parseResult.chapters
-    if (chapters.isEmpty()) return
+    if (chapters.isEmpty()) return false
     val chapterIds = chapters.map { it.id }
     if (!chapterIds.fitIntoOneBook()) {
       Logger.nonFatal(
@@ -97,7 +102,7 @@ internal class MediaScanner(
           "Skipping a book with ${chapters.size} chapters, too many for one book",
         ),
       )
-      return
+      return true
     }
 
     val content = bookParser.parseAndStore(chapters, file, parseResult.firstChapterMetadata)
@@ -120,5 +125,6 @@ internal class MediaScanner(
       validateIntegrity(updated, chapters)
       contentRepo.put(updated)
     }
+    return true
   }
 }
