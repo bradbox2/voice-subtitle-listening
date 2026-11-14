@@ -18,6 +18,7 @@ dependencies {
   implementation(projects.core.sleeptimer.api)
   implementation(projects.core.data.api)
   implementation(projects.core.studystats)
+  implementation(projects.core.audiobookshelf.api)
   implementation(projects.core.analytics.api)
 
   implementation(libs.androidxCore)

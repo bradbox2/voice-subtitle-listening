@@ -1,7 +1,10 @@
 package voice.core.studystats
 
+import io.mockk.every
+import io.mockk.mockk
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import voice.core.audiobookshelf.ServerFiles
 import voice.core.data.BookId
 import voice.core.data.ChapterId
 
@@ -41,6 +44,22 @@ class StudyNamesTest {
     assertEquals(
       StudyNames(folder = "Oral", file = "001_james.wav"),
       studyNames(BookId(id), ChapterId(id)),
+    )
+  }
+
+  @Test
+  fun `server books are named like on the server`() {
+    val bookId = BookId("abs://item/li_1")
+    val chapterId = ChapterId("abs://item/li_1/track/1/418302")
+    val serverFiles =
+      mockk<ServerFiles> {
+        every { folderName(bookId) } returns "VoiceSubtitleTestBook"
+        every { fileName(chapterId) } returns "E01.mp3"
+      }
+
+    assertEquals(
+      StudyNames(folder = "VoiceSubtitleTestBook", file = "E01.mp3"),
+      studyNames(bookId, chapterId, serverFiles),
     )
   }
 

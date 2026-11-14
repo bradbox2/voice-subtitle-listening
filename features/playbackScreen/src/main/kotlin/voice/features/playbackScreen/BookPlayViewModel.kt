@@ -54,8 +54,6 @@ import voice.core.sleeptimer.SleepTimerState
 import voice.core.ui.formatTime
 import voice.features.playbackScreen.batteryOptimization.BatteryOptimization
 import voice.features.playbackScreen.subtitle.SubtitlePractice
-import voice.features.playbackScreen.subtitle.fileName
-import voice.features.playbackScreen.subtitle.fullFileName
 import voice.navigation.Destination
 import voice.navigation.Navigator
 
@@ -362,8 +360,8 @@ class BookPlayViewModel(
                   active = chapterMark == book.currentMark && chapter == book.currentChapter,
                   time = formatTime(previousChapters.sumOf { it.duration } + chapterMark.startMs),
                   fileName =
-                    chapter.id.fullFileName().takeIf {
-                      name != chapter.id.fileName() && book.chapters.size > 1
+                    subtitles.fullFileName(chapter.id).takeIf {
+                      name != it.substringBeforeLast('.') && book.chapters.size > 1
                     },
                 )
               }

@@ -19,6 +19,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
+import voice.core.audiobookshelf.ServerFiles
 import voice.core.playback.session.bookId
 import voice.core.playback.session.realChapterId
 import voice.core.playback.session.toMediaIdOrNull
@@ -41,6 +42,7 @@ class StudyTimeRecorder(
   private val categorizer: StudyCategorizer,
   private val clock: Clock,
   private val scope: CoroutineScope,
+  private val serverFiles: ServerFiles,
 ) {
 
   private var current: StudyNames? = null
@@ -178,7 +180,7 @@ class StudyTimeRecorder(
     val mediaId = item.mediaId.toMediaIdOrNull() ?: return
     val bookId = mediaId.bookId ?: return
     val chapterId = mediaId.realChapterId ?: return
-    playing(studyNames(bookId, chapterId))
+    playing(studyNames(bookId, chapterId, serverFiles))
     categorizer.onPlaying(bookId, chapterId)
   }
 

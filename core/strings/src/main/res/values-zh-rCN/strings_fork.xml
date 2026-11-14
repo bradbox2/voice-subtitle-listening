@@ -2,6 +2,7 @@
 <resources>
     <string name="playback.subtitles.toggle">字幕</string>
     <string name="playback.subtitles.tools">练习工具</string>
+    <string name="playback.subtitles.streamed">下载这本书后，字幕和音频才能精确对齐</string>
     <string name="playback.subtitles.repeat">单句循环</string>
     <string name="playback.subtitles.star">收藏句子</string>
     <string name="playback.subtitles.unstar">取消收藏</string>

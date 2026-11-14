@@ -15,6 +15,7 @@ import voice.core.audiobookshelf.account.Account
 import voice.core.audiobookshelf.api.AbsLibraryItem
 import voice.core.audiobookshelf.api.AudiobookshelfApi
 import voice.core.audiobookshelf.api.BatchGetRequest
+import voice.core.audiobookshelf.files.AudiobookshelfServerFiles
 import voice.core.audiobookshelf.http.AudiobookshelfHttp
 import voice.core.audiobookshelf.itemId
 import voice.core.data.Book
@@ -37,6 +38,7 @@ internal class LibrarySync(
   private val chapterRepo: ChapterRepo,
   private val bookmarkRepo: BookmarkRepo,
   private val context: Context,
+  private val files: AudiobookshelfServerFiles,
 ) {
 
   suspend fun sync(account: Account) {
@@ -55,6 +57,7 @@ internal class LibrarySync(
     val stored = contentRepo.all().filter { it.id.isRemote }.associateBy { it.id }
 
     val changed = items.filter { item ->
+      if (!files.has(item.id)) return@filter true
       val content = stored[AudiobookshelfIds.bookId(item.id)] ?: return@filter true
       val firstChapter = chapterRepo.get(content.chapters.first())
       firstChapter == null || firstChapter.fileLastModified.toEpochMilli() != item.updatedAt
@@ -69,6 +72,7 @@ internal class LibrarySync(
         .forEach { item ->
           try {
             store(item)
+            files.store(account.serverUrl, item)
           } catch (e: CancellationException) {
             throw e
           } catch (e: IllegalStateException) {

@@ -14,10 +14,13 @@ import java.net.URLDecoder
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import voice.core.audiobookshelf.ServerFiles
 import voice.core.common.DispatcherProvider
 import voice.core.common.MainScope
 import voice.core.data.BookId
 import voice.core.data.ChapterId
+import voice.core.data.isRemote
+import voice.core.data.toUri
 import voice.core.playback.PlaybackMode
 import voice.core.playback.PlaybackModeStore
 import voice.core.playback.PlayerController
@@ -39,6 +42,7 @@ class SubtitlePractice(
   private val starredCuesStore: StarredSubtitleCuesStore,
   private val offsetsStore: SubtitleOffsetsStore,
   private val playbackModeStore: PlaybackModeStore,
+  private val serverFiles: ServerFiles,
 ) {
 
   private val scope = MainScope(dispatcherProvider)
@@ -47,6 +51,9 @@ class SubtitlePractice(
   private var loopRangeSet = false
   private var current: Current? = null
   private val reloadCount = mutableIntStateOf(0)
+
+  fun fullFileName(chapterId: ChapterId): String =
+    serverFiles.fileName(chapterId) ?: chapterId.fullFileName()
 
   /** Reads the subtitle file again, for one that was replaced in a file manager. */
   fun reload() {
@@ -113,8 +120,13 @@ class SubtitlePractice(
         }
       }
     val selectedStartMs = loopCue?.startMs ?: selectedCueStartMs.value
+    val streamed =
+      remember(bookId, chapterId) {
+        bookId.isRemote && !serverFiles.isDownloaded(chapterId.toUri())
+      }
     return SubtitlesViewState(
-      fileName = chapterId.fileName(),
+      streamed = streamed,
+      fileName = fullFileName(chapterId).substringBeforeLast('.'),
       focusMode = focusMode,
       repeatSentence = repeat,
       playbackMode = playbackMode,

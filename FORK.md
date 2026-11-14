@@ -147,3 +147,33 @@ How to merge: `git fetch upstream`, merge on a branch, resolve, then
 Linux CI (the rename tests of `MediaScannerTest` can't run on Windows). Check each point of
 this file (drift measures, deviations, stored keys, support card, portrait lock) is still in place.
 Merge every few weeks, the conflicts grow with the distance. Never push to `upstream`.
+
+## Audiobookshelf books with subtitles
+
+Server books (upstream's Audiobookshelf support, behind the `audiobookshelf` developer flag) get
+the subtitle features too. Their ids (`abs://item/<itemId>/track/<n>/<ino>`) carry no file names,
+so `AudiobookshelfServerFiles` (behind `ServerFiles` in `core:audiobookshelf:api`) keeps, per
+item, the folder and file names they have on the server and the same-named `.srt` files, in
+`files/audiobookshelf/files/<itemId>/` (`names.json`, `<ino of the audio>.srt`). `LibrarySync`
+writes them whenever it stores a changed item, and for every item that has none yet. The batch
+items request already returns `libraryFiles` and `path`, so no extra request is needed.
+
+- Subtitles: `SameFolderSubtitleFileProvider` asks `ServerFiles` for `abs` uris.
+- Names: the subtitle title, the file names in the chapter list and the study stats use the
+  server names, so a book moved from the device to the server keeps adding to the same study
+  entries and categories when its folder and file names stay the same. Stars and offsets are
+  keyed by ids and don't carry over (accepted, both are little used).
+- Drift: a fully downloaded server mp3 seeks by index like a local file
+  (`LocalIndexSeekingExtractorsFactory(isDownloaded = …)`). Streamed files keep the default seek,
+  as indexing would read the file over the network up to the target; the subtitle screen says so
+  (`playback.subtitles.streamed`). Constant bitrate files should seek fine while streaming too.
+- Not done: names and subtitles of books removed from the server stay on the device (a few KB
+  each).
+
+Upstream's `LibrarySync` keeps books the server flags as missing, so a book whose folder was
+deleted only leaves the phone once the server removes the item (the sync script below does).
+
+The server and the book folder are set up outside this repository: the books live in one folder
+on the PC, a script mirrors it to the server with `rsync --delete` and has Audiobookshelf rescan
+and remove items with issues. The library prefers folder names over tags
+(`metadataPrecedence` with `folderStructure` last).

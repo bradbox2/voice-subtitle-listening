@@ -10,6 +10,7 @@ import kotlin.math.roundToLong
 import kotlinx.coroutines.flow.Flow
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.builtins.ListSerializer
+import voice.core.audiobookshelf.ServerFiles
 import voice.core.data.BookId
 import voice.core.data.ChapterId
 import voice.core.datastore.VoiceDataStoreFactory
@@ -87,7 +88,13 @@ class StudyStats(private val store: StudyStatsStore) {
 fun studyNames(
   bookId: BookId,
   chapterId: ChapterId,
+  serverFiles: ServerFiles? = null,
 ): StudyNames {
+  if (serverFiles != null) {
+    val folder = serverFiles.folderName(bookId)
+    val file = serverFiles.fileName(chapterId)
+    if (folder != null && file != null) return StudyNames(folder = folder, file = file)
+  }
   val chapterPath = chapterId.value.decodedPath()
   val file = chapterPath.substringAfterLast('/')
   val folder =

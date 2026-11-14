@@ -15,6 +15,8 @@ data class SubtitlesViewState(
   val selectedIndex: Int?,
   val offsetMs: Long,
   val speedOptions: List<SpeedOption>,
+  /** A server file that isn't downloaded can't seek precisely, so the lines may be off a bit. */
+  val streamed: Boolean,
 ) {
 
   @Immutable

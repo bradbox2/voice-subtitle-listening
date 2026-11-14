@@ -5,6 +5,7 @@ plugins {
 
 dependencies {
   api(projects.core.data.api)
+  implementation(projects.core.audiobookshelf.api)
   implementation(projects.core.logging.api)
   implementation(libs.androidxCore)
 }

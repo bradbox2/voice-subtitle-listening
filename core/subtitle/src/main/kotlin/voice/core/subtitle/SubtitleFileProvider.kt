@@ -9,6 +9,8 @@ import androidx.core.net.toUri
 import dev.zacsweers.metro.AppScope
 import dev.zacsweers.metro.ContributesBinding
 import dev.zacsweers.metro.Inject
+import voice.core.audiobookshelf.ServerFiles
+import voice.core.data.ChapterId
 import voice.core.logging.api.Logger
 
 interface SubtitleFileProvider {
@@ -17,16 +19,23 @@ interface SubtitleFileProvider {
 
 @ContributesBinding(AppScope::class)
 class SameFolderSubtitleFileProvider
-internal constructor(private val contentResolver: ContentResolver?) : SubtitleFileProvider {
+internal constructor(
+  private val contentResolver: ContentResolver?,
+  private val serverFiles: ServerFiles? = null,
+) : SubtitleFileProvider {
 
-  @Inject constructor(context: Context) : this(context.contentResolver)
+  @Inject
+  constructor(
+    context: Context,
+    serverFiles: ServerFiles,
+  ) : this(context.contentResolver, serverFiles)
 
   override fun findSubtitleForAudio(audioUri: Uri): Uri? {
     return try {
       when (audioUri.scheme) {
         ContentResolver.SCHEME_FILE -> findNextToFile(audioUri)
         ContentResolver.SCHEME_CONTENT -> findNextToDocument(audioUri)
-        else -> null
+        else -> serverFiles?.subtitle(ChapterId(audioUri))?.toUri()
       }
     } catch (e: SecurityException) {
       Logger.w(e, "No access to the folder of the audio file")

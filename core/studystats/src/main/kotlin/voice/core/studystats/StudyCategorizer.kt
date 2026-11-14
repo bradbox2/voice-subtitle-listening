@@ -7,6 +7,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import voice.core.audiobookshelf.ServerFiles
 import voice.core.common.DispatcherProvider
 import voice.core.data.BookId
 import voice.core.data.ChapterId
@@ -27,6 +28,7 @@ class StudyCategorizer(
   private val books: BookRepository,
   private val dispatcherProvider: DispatcherProvider,
   private val scope: CoroutineScope,
+  private val serverFiles: ServerFiles,
 ) {
 
   fun onPlaying(
@@ -34,7 +36,7 @@ class StudyCategorizer(
     chapterId: ChapterId,
   ) {
     scope.launch(dispatcherProvider.io) {
-      classify(studyNames(bookId, chapterId).folder, listOf(chapterId))
+      classify(studyNames(bookId, chapterId, serverFiles).folder, listOf(chapterId))
     }
   }
 
@@ -43,7 +45,7 @@ class StudyCategorizer(
       val labelled = categories.labels.first()
       books.all().forEach { book ->
         val first = book.chapters.firstOrNull() ?: return@forEach
-        val folder = studyNames(book.id, first.id).folder
+        val folder = studyNames(book.id, first.id, serverFiles).folder
         if (folder !in labelled) {
           classify(folder, book.chapters.take(CHAPTERS_LOOKED_AT).map { it.id })
         }

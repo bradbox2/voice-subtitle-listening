@@ -57,6 +57,15 @@ internal data class AbsLibraryItem(
   val isMissing: Boolean = false,
   val isInvalid: Boolean = false,
   val media: AbsBookMedia,
+  val path: String? = null,
+  val isFile: Boolean = false,
+  val libraryFiles: List<AbsLibraryFile> = emptyList(),
+)
+
+@Serializable
+internal data class AbsLibraryFile(
+  val ino: String,
+  val metadata: AbsFileMetadata,
 )
 
 @Serializable

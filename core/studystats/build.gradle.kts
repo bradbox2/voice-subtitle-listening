@@ -7,6 +7,7 @@ plugins {
 dependencies {
   api(projects.core.data.api)
   api(projects.core.datastore)
+  api(projects.core.audiobookshelf.api)
   implementation(projects.core.common)
   implementation(projects.core.initializer)
   implementation(projects.core.subtitle)

@@ -10,9 +10,11 @@ import androidx.media3.extractor.mp3.Mp3Extractor
 
 /**
  * Mp3 files on the device seek by an index of their frames, see [LocalMp3Extractor]. That reads the
- * file up to the target, which is only acceptable when the file is on the device.
+ * file up to the target, which is only acceptable when the file is on the device, like a server
+ * book that was downloaded.
  */
 internal class LocalIndexSeekingExtractorsFactory(
+  private val isDownloaded: (Uri) -> Boolean = { false },
   private val local: ExtractorsFactory = ExtractorsFactory {
     arrayOf(
       LocalMp3Extractor(
@@ -32,13 +34,16 @@ internal class LocalIndexSeekingExtractorsFactory(
     responseHeaders: Map<String, List<String>>,
   ): Array<Extractor> {
     val extractors = other.createExtractors(uri, responseHeaders)
-    return when (uri.scheme) {
-      ContentResolver.SCHEME_FILE,
-      ContentResolver.SCHEME_CONTENT ->
-        extractors
-          .flatMap { if (it is Mp3Extractor) local.createExtractors().asList() else listOf(it) }
-          .toTypedArray()
-      else -> extractors
+    val onDevice =
+      uri.scheme == ContentResolver.SCHEME_FILE ||
+        uri.scheme == ContentResolver.SCHEME_CONTENT ||
+        isDownloaded(uri)
+    return if (onDevice) {
+      extractors
+        .flatMap { if (it is Mp3Extractor) local.createExtractors().asList() else listOf(it) }
+        .toTypedArray()
+    } else {
+      extractors
     }
   }
 }

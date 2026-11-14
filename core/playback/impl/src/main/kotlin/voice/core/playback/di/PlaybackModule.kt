@@ -21,6 +21,7 @@ import dev.zacsweers.metro.SingleIn
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import voice.core.audiobookshelf.ServerFiles
 import voice.core.data.AUDIOBOOKSHELF_SCHEME
 import voice.core.logging.api.Logger
 import voice.core.playback.Media3AudioOffloadFeatureFlag
@@ -51,11 +52,15 @@ object PlaybackModule {
   fun mediaSourceFactory(
     context: Context,
     @RemoteMediaDataSource remoteDataSourceFactory: DataSource.Factory,
+    serverFiles: ServerFiles,
   ): MediaSource.Factory {
     // schemes the default data source doesn't know, like the ids of server books, go to the remote
     // one
     val dataSourceFactory = DefaultDataSource.Factory(context, remoteDataSourceFactory)
-    return DefaultMediaSourceFactory(dataSourceFactory, LocalIndexSeekingExtractorsFactory())
+    return DefaultMediaSourceFactory(
+      dataSourceFactory,
+      LocalIndexSeekingExtractorsFactory(isDownloaded = serverFiles::isDownloaded),
+    )
   }
 
   @Provides

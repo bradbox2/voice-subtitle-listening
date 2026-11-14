@@ -9,6 +9,8 @@
     <string name="playback.subtitles.toggle">Subtitles</string>
     <!-- Opens the row with repeat, speed and subtitle sync on the subtitle screen. -->
     <string name="playback.subtitles.tools">Practice tools</string>
+    <!-- Hint on the subtitle screen while a file of a server book plays without being downloaded. -->
+    <string name="playback.subtitles.streamed">Download the book so the lines match the audio exactly</string>
     <!-- Plays the current sentence again and again. -->
     <string name="playback.subtitles.repeat">Repeat sentence</string>
     <!-- Stars a subtitle line to practice it later. -->

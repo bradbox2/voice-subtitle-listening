@@ -35,6 +35,7 @@ class StudyTimeRecorderTest {
       categorizer = mockk(relaxed = true),
       clock = clock,
       scope = scope.backgroundScope,
+      serverFiles = NoServerFiles,
     )
   private val lesson = StudyNames(folder = "S0106edition", file = "S01E06.mp3")
   private val other = StudyNames(folder = "S0106edition", file = "S01E07.mp3")

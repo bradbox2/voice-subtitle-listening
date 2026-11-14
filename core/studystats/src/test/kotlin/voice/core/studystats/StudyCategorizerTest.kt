@@ -47,6 +47,7 @@ class StudyCategorizerTest {
       dispatcherProvider =
         DispatcherProvider(scope.coroutineContext, scope.coroutineContext, scope.coroutineContext),
       scope = scope.backgroundScope,
+      serverFiles = NoServerFiles,
     )
 
   private fun book(

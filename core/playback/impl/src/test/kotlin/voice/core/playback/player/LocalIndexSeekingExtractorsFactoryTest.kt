@@ -12,7 +12,9 @@ import org.junit.runner.RunWith
 @RunWith(AndroidJUnit4::class)
 class LocalIndexSeekingExtractorsFactoryTest {
 
-  private val factory = LocalIndexSeekingExtractorsFactory()
+  private val downloaded = "abs://item/1/track/0/2"
+  private val factory =
+    LocalIndexSeekingExtractorsFactory(isDownloaded = { it.toString() == downloaded })
 
   @Test
   fun `mp3 files on the device seek by index`() {
@@ -33,6 +35,19 @@ class LocalIndexSeekingExtractorsFactoryTest {
 
     assertTrue(extractors.any { it is Mp3Extractor })
     assertTrue(extractors.none { it is LocalMp3Extractor })
+  }
+
+  @Test
+  fun `downloaded server books seek by index`() {
+    val extractors = extractorsFor(downloaded)
+
+    assertTrue(extractors.any { it is LocalMp3Extractor })
+    assertTrue(extractors.none { it is Mp3Extractor })
+  }
+
+  @Test
+  fun `server books that stream keep the default`() {
+    assertTrue(extractorsFor("abs://item/1/track/1/3").none { it is LocalMp3Extractor })
   }
 
   @Test

@@ -187,6 +187,7 @@ class SubtitlePracticeTest {
       starredCuesStore = StarredSubtitleCuesStore(MemoryDataStore(emptySet())),
       offsetsStore = SubtitleOffsetsStore(offsets),
       playbackModeStore = PlaybackModeStore(MemoryDataStore(PlaybackMode.Sequential)),
+      serverFiles = NoServerFiles,
     )
   }
 }
@@ -201,5 +202,6 @@ internal fun noSubtitles(): SubtitlePractice {
     starredCuesStore = StarredSubtitleCuesStore(MemoryDataStore(emptySet())),
     offsetsStore = SubtitleOffsetsStore(MemoryDataStore(emptyMap())),
     playbackModeStore = PlaybackModeStore(MemoryDataStore(PlaybackMode.Sequential)),
+    serverFiles = NoServerFiles,
   )
 }

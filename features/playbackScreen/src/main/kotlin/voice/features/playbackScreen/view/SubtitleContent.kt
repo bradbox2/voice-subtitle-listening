@@ -130,6 +130,15 @@ internal fun SubtitleContent(
         modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
       )
     }
+    if (subtitles.streamed) {
+      Text(
+        text = stringResource(StringsR.string.playback_subtitles_streamed),
+        style = MaterialTheme.typography.bodySmall,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        textAlign = TextAlign.Center,
+        modifier = Modifier.fillMaxWidth().padding(bottom = 4.dp),
+      )
+    }
     SubtitleList(
       subtitles = subtitles,
       onCueClick = actions.onCueClick,
