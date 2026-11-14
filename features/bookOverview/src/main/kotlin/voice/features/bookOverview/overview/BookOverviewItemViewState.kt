@@ -5,6 +5,7 @@ import voice.core.audiobookshelf.download.BookDownloadState
 import voice.core.audiobookshelf.download.WaitingFor
 import voice.core.data.Book
 import voice.core.data.BookId
+import voice.core.data.isRemote
 import voice.core.logging.api.Logger
 import voice.core.ui.formatTime
 
@@ -31,15 +32,20 @@ sealed interface DownloadBadge {
   ) : DownloadBadge
 
   data object Failed : DownloadBadge
+
+  data object Downloaded : DownloadBadge
+
+  data object Streamed : DownloadBadge
 }
 
-internal fun BookDownloadState?.badge(): DownloadBadge? =
+// the server books get a badge of their own, as a book can be on the device and on the server
+internal fun BookDownloadState?.badge(bookId: BookId): DownloadBadge? =
   when (this) {
     is BookDownloadState.Downloading -> DownloadBadge.Running(progress, waitingFor)
     BookDownloadState.Failed -> DownloadBadge.Failed
-    is BookDownloadState.Downloaded,
+    is BookDownloadState.Downloaded -> DownloadBadge.Downloaded
     BookDownloadState.NotDownloaded,
-    null -> null
+    null -> if (bookId.isRemote) DownloadBadge.Streamed else null
   }
 
 internal fun Book.toItemViewState(

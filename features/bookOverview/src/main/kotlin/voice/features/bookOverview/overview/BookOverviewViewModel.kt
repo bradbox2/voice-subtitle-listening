@@ -207,7 +207,7 @@ class BookOverviewViewModel(
         currentBookId = currentBookId,
         livePlaybackState = { livePlaybackState.value },
         unavailable = id in unavailableBooks,
-        download = downloadStates[id].badge(),
+        download = downloadStates[id].badge(id),
       )
 
     val entries = remember(books) { libraryEntries(books) }

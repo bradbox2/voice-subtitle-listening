@@ -127,4 +127,8 @@
     <string name="study.this_week">This week</string>
     <!-- Switch on the study time screen that lists the time of each week. -->
     <string name="study.view.weeks">Weeks</string>
+    <!-- Read out for the badge on the cover of a server book that is downloaded. -->
+    <string name="library.book.server.downloaded">On the server, downloaded</string>
+    <!-- Read out for the badge on the cover of a server book that plays over the network. -->
+    <string name="library.book.server.streamed">On the server, streams</string>
 </resources>

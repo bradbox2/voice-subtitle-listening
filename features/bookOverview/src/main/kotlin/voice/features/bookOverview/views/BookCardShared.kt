@@ -71,7 +71,8 @@ internal fun BookCover(
     val badgeModifier = Modifier.align(Alignment.BottomEnd).offset(x = 4.dp, y = 4.dp)
     val colors = MaterialTheme.colorScheme
     when {
-      download != null -> DownloadBadgeIcon(badge = download, modifier = badgeModifier)
+      download is DownloadBadge.Running || download is DownloadBadge.Failed ->
+        DownloadBadgeIcon(badge = download, modifier = badgeModifier)
       unavailable ->
         CoverBadge(
           icon = VoiceIcons.CloudOff,
@@ -88,6 +89,7 @@ internal fun BookCover(
           contentColor = colors.onSurfaceVariant,
           modifier = badgeModifier,
         )
+      download != null -> DownloadBadgeIcon(badge = download, modifier = badgeModifier)
       finished ->
         CoverBadge(
           icon = VoiceIcons.Check,
@@ -182,6 +184,22 @@ private fun DownloadBadgeIcon(
           tint = colors.onErrorContainer,
         )
       }
+    DownloadBadge.Downloaded ->
+      CoverBadge(
+        icon = VoiceIcons.CloudDone,
+        contentDescription = stringResource(StringsR.string.library_book_server_downloaded),
+        containerColor = colors.primaryContainer,
+        contentColor = colors.onPrimaryContainer,
+        modifier = modifier,
+      )
+    DownloadBadge.Streamed ->
+      CoverBadge(
+        icon = VoiceIcons.Cloud,
+        contentDescription = stringResource(StringsR.string.library_book_server_streamed),
+        containerColor = colors.surfaceContainerHighest,
+        contentColor = colors.onSurfaceVariant,
+        modifier = modifier,
+      )
   }
 }
 

@@ -170,6 +170,12 @@ items request already returns `libraryFiles` and `path`, so no extra request is 
 - Not done: names and subtitles of books removed from the server stay on the device (a few KB
   each).
 
+A book can be on the device and on the server at once, so server books always carry a badge on
+their cover in the library and series lists: a cloud while they stream, a cloud with a check once
+downloaded (`DownloadBadge.Streamed/Downloaded`, from `badge(bookId)`). Upstream only shows a badge
+while downloading, after a failure or offline; those still come first. A finished server book shows
+the cloud instead of the check. Search results show no badge, as they have no download state.
+
 Upstream's `LibrarySync` keeps books the server flags as missing, so a book whose folder was
 deleted only leaves the phone once the server removes the item (the sync script below does).
 

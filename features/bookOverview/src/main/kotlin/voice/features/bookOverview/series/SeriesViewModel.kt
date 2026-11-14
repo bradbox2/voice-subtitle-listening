@@ -117,7 +117,7 @@ class SeriesViewModel(
               book
                 .toItemViewState(
                   unavailable = book.id in unavailableBooks,
-                  download = downloadStates[book.id].badge(),
+                  download = downloadStates[book.id].badge(book.id),
                 )
                 .let { if (it.author == series.author) it.copy(author = null) else it },
             part = book.seriesPart,

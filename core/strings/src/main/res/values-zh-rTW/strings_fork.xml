@@ -62,4 +62,6 @@
     <string name="study.filter.all">全部</string>
     <string name="study.this_week">本週</string>
     <string name="study.view.weeks">按週</string>
+    <string name="library.book.server.downloaded">雲端圖書，已下載</string>
+    <string name="library.book.server.streamed">雲端圖書，線上播放</string>
 </resources>

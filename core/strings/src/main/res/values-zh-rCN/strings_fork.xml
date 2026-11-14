@@ -62,4 +62,6 @@
     <string name="study.filter.all">全部</string>
     <string name="study.this_week">本周</string>
     <string name="study.view.weeks">按周</string>
+    <string name="library.book.server.downloaded">云端图书，已下载</string>
+    <string name="library.book.server.streamed">云端图书，在线播放</string>
 </resources>
